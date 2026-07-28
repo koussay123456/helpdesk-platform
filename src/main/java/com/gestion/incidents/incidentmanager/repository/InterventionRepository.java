@@ -30,26 +30,4 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
 
     /** Dernier message d'un ticket, pour l'aperçu de la liste des conversations. */
     Optional<Intervention> findTopByTicketOrderByDateInterventionDescIdDesc(Ticket ticket);
-
-    /**
-     * Messages de fil de ticket non lus : postérieurs à la dernière visite,
-     * écrits par quelqu'un d'autre, et qui me concernent — soit je suis
-     * explicitement destinataire, soit je suis partie prenante du ticket.
-     *
-     * Les jointures sont explicites et à gauche : écrire t.supportIt.id dans
-     * le WHERE produirait une jointure interne qui écarterait les tickets non
-     * assignés de tout le décompte.
-     */
-    @Query("SELECT COUNT(i) FROM Intervention i "
-            + "JOIN i.ticket t "
-            + "LEFT JOIN t.utilisateur d "
-            + "LEFT JOIN t.supportIt s "
-            + "WHERE i.dateIntervention > :depuis "
-            + "  AND i.auteur.id <> :utilisateurId "
-            + "  AND (LOWER(COALESCE(i.destinataires, '')) LIKE LOWER(CONCAT('%', :email, '%')) "
-            + "       OR d.id = :utilisateurId "
-            + "       OR s.id = :utilisateurId)")
-    long compterNonLus(@Param("utilisateurId") Long utilisateurId,
-                       @Param("email") String email,
-                       @Param("depuis") java.time.LocalDateTime depuis);
 }

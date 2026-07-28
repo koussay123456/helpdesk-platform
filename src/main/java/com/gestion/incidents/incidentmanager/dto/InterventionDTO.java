@@ -1,7 +1,6 @@
 package com.gestion.incidents.incidentmanager.dto;
 
 import com.gestion.incidents.incidentmanager.model.Intervention;
-import com.gestion.incidents.incidentmanager.model.Message;
 import com.gestion.incidents.incidentmanager.model.Utilisateur;
 
 import java.time.LocalDateTime;
@@ -15,13 +14,10 @@ import java.time.LocalDateTime;
  * Le couple (source, id) identifie le message pour l'édition et la suppression :
  * les deux tables ont leurs propres séquences, l'id seul ne suffirait pas.
  */
-public class ChatMessageDTO {
+public class InterventionDTO {
 
-    public static final String SOURCE_TICKET = "TICKET";
-    public static final String SOURCE_DIRECT = "DIRECT";
 
     private Long id;
-    private String source;
     private Long ticketId;
 
     private String contenu;
@@ -36,13 +32,12 @@ public class ChatMessageDTO {
     private String auteurEmail;
     private String auteurRole;
 
-    public ChatMessageDTO() {
+    public InterventionDTO() {
     }
 
-    public static ChatMessageDTO from(Intervention intervention) {
-        ChatMessageDTO dto = new ChatMessageDTO();
+    public static InterventionDTO from(Intervention intervention) {
+        InterventionDTO dto = new InterventionDTO();
         dto.id = intervention.getId();
-        dto.source = SOURCE_TICKET;
         dto.ticketId = intervention.getTicket() != null ? intervention.getTicket().getId() : null;
         dto.contenu = intervention.getCommentaire();
         dto.dateEnvoi = intervention.getDateIntervention();
@@ -53,21 +48,8 @@ public class ChatMessageDTO {
         return dto;
     }
 
-    public static ChatMessageDTO from(Message message) {
-        ChatMessageDTO dto = new ChatMessageDTO();
-        dto.id = message.getId();
-        dto.source = SOURCE_DIRECT;
-        dto.ticketId = null;
-        dto.contenu = message.getContenu();
-        dto.dateEnvoi = message.getDateEnvoi();
-        dto.dateModification = message.getDateModification();
-        dto.modifie = message.getDateModification() != null;
-        dto.destinataires = message.getDestinataire();
-        appliquerAuteur(dto, message.getAuteur());
-        return dto;
-    }
 
-    private static void appliquerAuteur(ChatMessageDTO dto, Utilisateur auteur) {
+    private static void appliquerAuteur(InterventionDTO dto, Utilisateur auteur) {
         if (auteur == null) {
             return;
         }
@@ -78,7 +60,6 @@ public class ChatMessageDTO {
     }
 
     public Long getId() { return id; }
-    public String getSource() { return source; }
     public Long getTicketId() { return ticketId; }
     public String getContenu() { return contenu; }
     public LocalDateTime getDateEnvoi() { return dateEnvoi; }
@@ -91,7 +72,6 @@ public class ChatMessageDTO {
     public String getAuteurRole() { return auteurRole; }
 
     public void setId(Long id) { this.id = id; }
-    public void setSource(String source) { this.source = source; }
     public void setTicketId(Long ticketId) { this.ticketId = ticketId; }
     public void setContenu(String contenu) { this.contenu = contenu; }
     public void setDateEnvoi(LocalDateTime dateEnvoi) { this.dateEnvoi = dateEnvoi; }

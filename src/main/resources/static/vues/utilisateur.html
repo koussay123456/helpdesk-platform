@@ -1,0 +1,110 @@
+<!-- ============ ESPACE UTILISATEUR ============ -->
+<div id="userDashboard" class="dashboard-screen">
+    <div class="admin-container">
+
+        <aside class="admin-sidebar-new">
+            <div class="sidebar-logo-section">
+                <div class="sidebar-logo-icon">
+                    <img src="assets/logo-kipropha.png" alt="Kipropha" class="logo-image">
+                </div>
+            </div>
+
+            <div class="sidebar-identite">
+                <i class="fas fa-user"></i>
+                <span class="role">Utilisateur</span>
+                <span class="nom" id="userIdentite">—</span>
+            </div>
+
+            <nav class="sidebar-nav-tabs">
+                <button class="sidebar-tab-btn active" data-pane="dashboard" title="Mes tickets">
+                    <i class="fas fa-chart-line"></i>
+                    <span class="libelle">Mes tickets</span>
+                </button>
+            </nav>
+
+            <button class="sidebar-logout-btn" onclick="logout()" title="Se déconnecter">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Déconnecter</span>
+            </button>
+        </aside>
+
+        <main class="admin-main-content">
+            <div class="filigrane-central" aria-hidden="true">
+                <img src="assets/logo-kipropha.png" alt="">
+            </div>
+
+            <header class="admin-header-new">
+                <div class="entete-gauche">
+                    <button type="button" class="btn-plus" id="btnNouveauTicket"
+                            title="Déclarer un incident">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <h1 id="userPageTitle"><i class="fas fa-chart-line"></i> Mes tickets</h1>
+                </div>
+                <div class="admin-user-info">
+                    <div class="admin-profile-badge">
+                        <span class="avatar-profil" id="userAvatar">—</span>
+                        <div class="admin-profile-text">
+                            <span class="admin-role">Utilisateur</span>
+                            <span class="admin-name" id="userNameDisplay">—</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="admin-tabs-wrapper">
+
+                <section class="admin-tab-pane active" data-pane="dashboard">
+                    <div class="zone-centree">
+
+                        <div class="grille-kpi" id="grilleKpiUtilisateur"></div>
+
+                        <div class="outils-table">
+                            <input type="search" id="rechercheMesTickets" class="champ-recherche"
+                                   placeholder="Rechercher un numéro ou un titre…">
+                            <select id="filtreMesTicketsStatut" class="filtre-select">
+                                <option value="">Tous les statuts</option>
+                                <option value="NOUVEAU">Nouveau</option>
+                                <option value="EN_COURS">En cours</option>
+                                <option value="RESOLU">Résolu</option>
+                                <option value="FERME">Fermé</option>
+                            </select>
+                            <select id="filtreMesTicketsPriorite" class="filtre-select">
+                                <option value="">Toutes les priorités</option>
+                                <option value="CRITIQUE">Critique</option>
+                                <option value="ELEVEE">Élevée</option>
+                                <option value="MOYENNE">Moyenne</option>
+                                <option value="FAIBLE">Faible</option>
+                            </select>
+                            <select id="filtreMesTicketsCategorie" class="filtre-select">
+                                <option value="">Toutes les catégories</option>
+                                <option value="MATERIEL">Matériel</option>
+                                <option value="LOGICIEL">Logiciel</option>
+                                <option value="RESEAU">Réseau</option>
+                                <option value="IMPRIMANTE">Imprimante</option>
+                                <option value="AUTRE">Autre</option>
+                            </select>
+                            <span class="compte-resultats" id="compteMesTickets"></span>
+                        </div>
+
+                        <div class="table-defilante">
+                            <table class="admin-data-table">
+                                <thead>
+                                <tr>
+                                    <th>Identifiant</th><th>Titre</th><th>Catégorie</th>
+                                    <th>Statut</th><th>Priorité</th>
+                                    <th>Créé le</th><th>Pris en charge par</th>
+                                </tr>
+                                </thead>
+                                <tbody id="mesTicketsTableBody">
+                                <tr><td colspan="7" class="etat-vide">Chargement…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+</div>

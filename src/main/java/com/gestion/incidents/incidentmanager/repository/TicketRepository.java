@@ -53,6 +53,12 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             + "ORDER BY t.dateCreation DESC")
     List<Ticket> findParticipations(@Param("utilisateurId") Long utilisateurId);
 
+    /** Tickets ouverts pendant une période donnée, personnes chargées en une requête. */
+    @Query("SELECT t FROM Ticket t LEFT JOIN FETCH t.utilisateur LEFT JOIN FETCH t.supportIt "
+            + "WHERE t.dateCreation BETWEEN :debut AND :fin ORDER BY t.dateCreation DESC")
+    List<Ticket> findParPeriode(@Param("debut") java.time.LocalDateTime debut,
+                                @Param("fin") java.time.LocalDateTime fin);
+
     long countByStatut(Statut statut);
     long countByCategorie(Categorie categorie);
     long countBySupportIt(Utilisateur supportIt);

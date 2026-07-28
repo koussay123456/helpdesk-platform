@@ -1,0 +1,109 @@
+/* ==========================================================================
+   Fondations : palette, réinitialisation, écrans et ascenseurs.
+   ========================================================================== */
+
+/* ============================================================
+   CHARTE KIPROPHA
+   Vert principal #00A859 sur blanc, coins arrondis, ombres douces.
+   Toutes les couleurs de l'application dérivent de ces variables.
+   ============================================================ */
+:root {
+    --vert:        #00A859;
+    --vert-fonce:  #008144;
+    --vert-nuit:   #005E32;
+    --vert-brume:  #E6F6EE;
+    --vert-voile:  #F4FBF7;
+
+    --encre:       #1F2A33;
+    --gris:        #6B7A87;
+    --gris-clair:  #9AA7B1;
+    --bordure:     #E3E9ED;
+
+    --rouge:       #DC2626;
+    --rouge-voile: #FEECEC;
+    --ambre:       #B45309;
+    --ambre-voile: #FEF3C7;
+    --bleu:        #0C4A6E;
+    --bleu-voile:  #DBEAFE;
+
+    --rayon-s: 8px;
+    --rayon:   12px;
+    --rayon-l: 18px;
+
+    --ombre-s: 0 1px 4px rgba(15, 42, 28, .06);
+    --ombre:   0 2px 12px rgba(15, 42, 28, .08);
+    --ombre-l: 0 8px 28px rgba(15, 42, 28, .14);
+
+    --sidebar-w: 196px;
+
+    /* Les bulles de navigation se dimensionnent avec la hauteur de la
+       fenêtre : sur un écran bas, elles se resserrent au lieu de
+       repousser le bouton de déconnexion hors du cadre. */
+    --bulle: clamp(54px, 7.2vh, 84px);
+    --bulle-gap: clamp(12px, 2.4vh, 30px);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body { width: 100%; height: 100%; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    color: var(--encre);
+    overflow: hidden;
+
+    /* ------------------------------------------------------------
+       FILIGRANE GLOBAL "KIPROPHA"
+       Motif SVG en data-URI : le mot est dessiné dans un <pattern>
+       tourné à -45°, puis la tuile est répétée sur toute la surface.
+       La tuile fait 282,84 px = 200 × racine de 2, soit exactement
+       deux périodes du motif incliné : la répétition est donc sans
+       raccord visible. Opacité du texte : 0,085.
+       ------------------------------------------------------------ */
+    background-color: #fff;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='282.84' height='282.84'%3E%3Cdefs%3E%3Cpattern id='k' width='200' height='100' patternUnits='userSpaceOnUse' patternTransform='rotate(-45)'%3E%3Ctext x='0' y='58' font-family='Helvetica,Arial,sans-serif' font-size='24' font-weight='700' letter-spacing='6' fill='%2300A859' fill-opacity='0.085'%3EKIPROPHA%3C/text%3E%3C/pattern%3E%3C/defs%3E%3Crect width='282.84' height='282.84' fill='url(%23k)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 282.84px 282.84px;
+    background-attachment: fixed;
+}
+
+/* ------------------------------------------------------------------
+   ASCENSEURS
+   Un seul habillage pour toute l'application : tables, listes, fil de
+   discussion, fenêtres modales et zones d'onglets. Le sélecteur
+   universel évite d'oublier un conteneur au fil des évolutions.
+   ------------------------------------------------------------------ */
+* { scrollbar-width: thin; scrollbar-color: var(--vert) var(--vert-voile); }
+*::-webkit-scrollbar { width: 11px; height: 11px; }
+*::-webkit-scrollbar-track { background: var(--vert-voile); border-radius: 8px; }
+*::-webkit-scrollbar-thumb {
+    background: var(--vert); border-radius: 8px;
+    border: 2px solid var(--vert-voile);
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--vert-fonce); }
+*::-webkit-scrollbar-corner { background: var(--vert-voile); }
+
+/* La marge verte a besoin d'un contraste inversé. */
+.admin-sidebar-new * { scrollbar-color: rgba(255, 255, 255, .45) transparent; }
+.admin-sidebar-new *::-webkit-scrollbar-track { background: transparent; }
+.admin-sidebar-new *::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, .45); border-color: transparent;
+}
+
+:focus-visible {
+    outline: 2px solid var(--vert);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+}
+
+/* ============ ÉCRANS ============ */
+.screen, .dashboard-screen {
+    display: none;
+    width: 100%; height: 100%;
+    position: fixed; top: 0; left: 0;
+    z-index: 1;
+}
+.screen.active, .dashboard-screen.active { display: flex; }

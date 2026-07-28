@@ -1,0 +1,351 @@
+/* ==========================================================================
+   Charpente des trois espaces : marge latérale, en-tête, volets.
+   ========================================================================== */
+
+/* ============================================================
+   ESPACE ADMINISTRATEUR
+   ============================================================ */
+.admin-container {
+    display: flex; width: 100%; height: 100%;
+    background: transparent; position: relative; overflow: hidden;
+}
+
+/* --- Sidebar --- */
+.admin-sidebar-new {
+    width: var(--sidebar-w);
+    background: linear-gradient(180deg, var(--vert) 0%, var(--vert-nuit) 100%);
+    display: flex; flex-direction: column; align-items: center;
+    padding: clamp(14px, 2.4vh, 26px) 0 clamp(14px, 2.2vh, 22px);
+    box-shadow: 3px 0 14px rgba(0, 0, 0, .12);
+    z-index: 30; flex-shrink: 0;
+    overflow: hidden;
+}
+
+.sidebar-logo-section {
+    display: flex; flex-direction: column; align-items: center;
+    flex-shrink: 0;
+    margin-bottom: clamp(14px, 2.6vh, 30px);
+    padding-bottom: clamp(12px, 2.2vh, 24px);
+    border-bottom: 1px solid rgba(255, 255, 255, .16);
+    width: 90%;
+}
+/* Plaque blanche : le logo Kipropha est vert, il doit rester vert.
+   (Aucun filtre : un filter: invert() sur ce PNG donnerait un aplat.)
+   Le cadre reprend les proportions exactes du PNG (202 × 53) : le mot
+   occupe donc toute la surface, sans bande vide au-dessus et en dessous. */
+.sidebar-logo-icon {
+    width: 100%;
+    /* Le PNG fait 202 × 53. Avec une marge intérieure de 2 % (calculée
+       sur la largeur dans les deux sens), le rapport du cadre doit être
+       1 / (0,96/3,811 + 0,04) = 3,43 pour que l'image remplisse
+       exactement la plaque, à n'importe quelle largeur. */
+    aspect-ratio: 3.43 / 1;
+    padding: 2%;
+    background: #fff; border-radius: var(--rayon-s);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--vert-nuit); font-size: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .12);
+    transition: all .3s; overflow: hidden;
+}
+.sidebar-logo-icon:hover { transform: scale(1.03); }
+.logo-image { width: 100%; height: 100%; object-fit: contain; }
+
+/* Écartement des bulles de navigation.
+   min-height: 0 + overflow-y autorisent la colonne à se comprimer :
+   quoi qu'il arrive, le bouton de déconnexion reste visible. */
+.sidebar-nav-tabs {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex; flex-direction: column;
+    gap: 12px;
+    width: 100%; padding: 0 12px;
+    /* Même retrait en haut et en bas : le groupe reste au centre exact
+       de l'espace laissé entre le logo et la déconnexion. */
+    margin: var(--bulle-gap) 0;
+    scrollbar-width: none;
+}
+.sidebar-nav-tabs::-webkit-scrollbar { display: none; }
+
+/* Deux marges automatiques encadrent le groupe : l'espace libre se
+   répartit à parts égales au-dessus et en dessous, donc les bulles sont
+   centrées et restent équidistantes entre elles.
+
+   Des marges auto plutôt qu'un justify-content: center : en cas de
+   débordement elles se résolvent à zéro, là où justify-content rendrait
+   le haut de la colonne inatteignable au défilement. */
+.sidebar-nav-tabs > :first-child { margin-top: auto; }
+.sidebar-nav-tabs > :last-child  { margin-bottom: auto; }
+
+.sidebar-tab-btn {
+    width: 88%; min-height: 52px;
+    margin: 0 auto; flex-shrink: 0;
+    padding: 12px 14px;
+    display: flex; align-items: center; gap: 12px;
+    text-align: left; font-family: inherit;
+    background: rgba(255, 255, 255, .12); border: none;
+    border-radius: var(--rayon); color: rgba(255, 255, 255, .82);
+    cursor: pointer; transition: all .28s ease;
+    position: relative;
+}
+.sidebar-tab-btn i {
+    font-size: 1.1rem; width: 22px; flex-shrink: 0; text-align: center;
+}
+.sidebar-tab-btn .libelle {
+    font-size: .76rem; font-weight: 600; line-height: 1.25;
+    letter-spacing: .01em;
+}
+.sidebar-tab-btn:hover {
+    background: rgba(255, 255, 255, .24); color: #fff; transform: translateX(3px);
+}
+.sidebar-tab-btn.active {
+    background: #fff; color: var(--vert-nuit);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, .22);
+}
+
+.message-badge {
+    position: absolute; top: -6px; right: -6px;
+    background: var(--rouge); color: #fff;
+    min-width: 26px; height: 26px; padding: 0 6px;
+    border-radius: 13px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: .82rem;
+    animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+
+/* Déconnexion collée en bas */
+/* Le bouton porte désormais son libellé : icône au-dessus, mot en dessous.
+   La largeur suit celle de la marge plutôt qu'une bulle carrée. */
+.sidebar-logout-btn {
+    width: 84%; margin: auto auto 0; flex-shrink: 0;
+    padding: 12px 8px;
+    background: rgba(220, 38, 38, .22); border: none;
+    border-radius: var(--rayon); color: #FCA5A5;
+    cursor: pointer; transition: all .28s;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    font-family: inherit;
+}
+.sidebar-logout-btn i { font-size: clamp(1rem, 2.1vh, 1.4rem); }
+.sidebar-logout-btn span {
+    font-size: .7rem; font-weight: 700;
+    letter-spacing: .04em; text-transform: uppercase;
+}
+.sidebar-logout-btn:hover { background: rgba(220, 38, 38, .45); color: #fff; transform: scale(1.05); }
+
+/* --- Contenu principal --- */
+.admin-main-content {
+    flex: 1; display: flex; flex-direction: column;
+    background: transparent; overflow: hidden; position: relative; width: 100%;
+}
+
+.admin-header-new {
+    background: linear-gradient(90deg, #fff 0%, var(--vert-voile) 100%);
+    border-bottom: 2px solid var(--vert);
+    padding: 18px 32px;
+    display: flex; justify-content: space-between; align-items: center;
+    box-shadow: var(--ombre-s); z-index: 20; flex-shrink: 0;
+}
+.admin-header-new h1 {
+    font-size: 1.65rem; font-weight: 700; color: var(--vert-nuit);
+    display: flex; align-items: center; gap: 12px;
+}
+.admin-header-new h1 i { color: var(--vert); }
+
+/* Topbar : un seul bloc "Admin Helpdesk", sans nom d'utilisateur */
+.admin-profile-badge {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--vert-brume);
+    padding: 10px 18px; border-radius: 999px;
+    border: 1px solid rgba(0, 168, 89, .22);
+}
+.admin-profile-badge i { color: var(--vert); font-size: 1.15rem; }
+.admin-role {
+    font-size: .82rem; font-weight: 700; color: var(--vert-nuit);
+    text-transform: uppercase; letter-spacing: .06em;
+}
+
+.admin-tabs-wrapper {
+    flex: 1; overflow-y: auto; background: transparent;
+    z-index: 10; width: 100%; position: relative;
+}
+
+.admin-tab-pane {
+    display: none; width: 100%; padding: 32px 24px;
+    animation: fadeInTab .3s ease; position: relative; z-index: 10;
+}
+.admin-tab-pane.active { display: block; }
+@keyframes fadeInTab {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.admin-content-centered { max-width: 1200px; margin: 0 auto; width: 100%; }
+
+/* --- Métriques ---
+   Empilées à la verticale, en colonne centrée : chaque indicateur est
+   un bandeau libellé à gauche, valeur à droite. L'accent vert passe du
+   haut vers la gauche, plus lisible sur un rectangle horizontal. */
+.metrics-vertical-grid {
+    display: flex; flex-direction: column;
+    gap: 14px; margin: 0 auto 40px;
+    width: min(540px, 100%);
+}
+.metric-card-vertical {
+    background: #fff; border-radius: var(--rayon);
+    padding: 16px 24px; box-shadow: var(--ombre);
+    border-left: 4px solid var(--vert);
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 20px; text-align: left; transition: all .28s;
+}
+.metric-card-vertical:hover {
+    transform: translateX(5px); box-shadow: 0 8px 22px rgba(0, 168, 89, .16);
+}
+.metric-label {
+    font-size: .82rem; color: var(--gris); font-weight: 600;
+    text-transform: uppercase; letter-spacing: .05em;
+}
+.metric-value-large {
+    font-size: 2rem; font-weight: 900; color: var(--vert);
+    line-height: 1; flex-shrink: 0;
+}
+
+/* --- Formulaires admin --- */
+.form-section-admin, .table-section-admin {
+    background: #fff; border-radius: var(--rayon);
+    padding: 24px; box-shadow: var(--ombre); margin-bottom: 30px;
+}
+.form-section-admin h3, .table-section-admin h3 {
+    font-size: 1.05rem; font-weight: 600; color: var(--vert-nuit); margin-bottom: 20px;
+}
+
+.form-grid-admin {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px; margin-bottom: 20px;
+}
+.form-group-admin { display: flex; flex-direction: column; }
+.form-group-admin label {
+    font-size: .88rem; font-weight: 600; color: var(--encre); margin-bottom: 8px;
+}
+.form-group-admin input, .form-group-admin textarea, .form-group-admin select {
+    padding: 10px 12px; border: 1px solid var(--bordure);
+    border-radius: var(--rayon-s); font-size: .95rem;
+    font-family: inherit; transition: all .2s;
+}
+.form-group-admin input:focus, .form-group-admin textarea:focus, .form-group-admin select:focus {
+    outline: none; border-color: var(--vert);
+    box-shadow: 0 0 0 3px rgba(0, 168, 89, .12);
+}
+.form-group-admin input:disabled {
+    background: var(--vert-voile); color: var(--gris);
+    cursor: not-allowed; border-style: dashed;
+}
+.aide { display: block; font-size: .74rem; color: var(--gris-clair); margin-top: 6px; }
+
+.btn-admin-primary {
+    background: linear-gradient(135deg, var(--vert) 0%, var(--vert-fonce) 100%);
+    color: #fff; border: none; padding: 12px 24px;
+    border-radius: var(--rayon-s); font-weight: 600; cursor: pointer;
+    transition: all .28s; display: flex; align-items: center;
+    justify-content: center; gap: 8px; width: 100%;
+}
+.btn-admin-primary:hover {
+    box-shadow: 0 6px 16px rgba(0, 168, 89, .3); transform: translateY(-2px);
+}
+
+/* --- Tableaux --- */
+.table-wrapper { overflow-x: auto; width: 100%; }
+.admin-data-table { width: 100%; border-collapse: collapse; }
+.admin-data-table thead {
+    background: linear-gradient(90deg, var(--vert-voile) 0%, var(--vert-brume) 100%);
+    border-bottom: 2px solid var(--vert);
+}
+.admin-data-table th {
+    padding: 15px; text-align: left; font-weight: 600;
+    color: var(--vert-nuit); font-size: .82rem;
+    text-transform: uppercase; letter-spacing: .05em;
+}
+.admin-data-table td {
+    padding: 15px; border-bottom: 1px solid var(--bordure); font-size: .94rem;
+}
+.admin-data-table tbody tr { transition: background .2s; }
+.admin-data-table tbody tr:hover { background: var(--vert-voile); }
+
+.rank-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, var(--vert) 0%, var(--vert-fonce) 100%);
+    color: #fff; font-weight: 700; border-radius: var(--rayon-s);
+}
+
+.performance-bar {
+    width: 100%; height: 24px; background: #EDF1F4;
+    border-radius: 6px; overflow: hidden;
+}
+.performance-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--vert) 0%, var(--vert-fonce) 100%);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: .75rem; font-weight: 700; transition: width .4s;
+}
+
+.role-badge-table {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    font-size: .78rem; font-weight: 600; text-transform: uppercase;
+}
+.role-badge-admin       { background: var(--ambre-voile); color: var(--ambre); }
+.role-badge-support     { background: var(--bleu-voile);  color: var(--bleu); }
+.role-badge-utilisateur { background: var(--vert-brume);  color: var(--vert-nuit); }
+
+.action-buttons { display: flex; gap: 8px; justify-content: center; }
+.btn-small-action {
+    padding: 7px 12px; border: none; border-radius: 6px;
+    cursor: pointer; font-size: .85rem; transition: all .2s;
+}
+.btn-edit   { background: var(--bleu-voile);  color: var(--bleu); }
+.btn-delete { background: var(--rouge-voile); color: var(--rouge); }
+.btn-small-action:hover:not(:disabled) { filter: brightness(.95); }
+.btn-small-action:disabled { opacity: .45; cursor: not-allowed; }
+
+/* --- Journal d'audit --- */
+.audit-controls { display: flex; gap: 12px; margin-bottom: 22px; }
+.audit-search, .audit-filter {
+    padding: 11px 16px; border: 1px solid var(--bordure);
+    border-radius: var(--rayon-s); font-size: .95rem;
+    font-family: inherit; background: #fff; transition: all .2s;
+}
+.audit-search { flex: 1; }
+.audit-filter { cursor: pointer; }
+.audit-search:focus, .audit-filter:focus {
+    outline: none; border-color: var(--vert);
+    box-shadow: 0 0 0 3px rgba(0, 168, 89, .12);
+}
+
+.audit-timeline {
+    background: #fff; border-radius: var(--rayon);
+    box-shadow: var(--ombre); padding: 24px;
+}
+.audit-list { display: flex; flex-direction: column; gap: 14px; }
+.audit-item {
+    background: var(--vert-voile); border-left: 4px solid var(--vert);
+    padding: 16px; border-radius: var(--rayon-s); transition: all .2s;
+}
+.audit-item:hover { box-shadow: 0 2px 10px rgba(0, 168, 89, .16); }
+.audit-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px; gap: 12px; }
+.audit-user { font-weight: 600; color: var(--vert-nuit); }
+.audit-date { font-size: .82rem; color: var(--gris-clair); white-space: nowrap; }
+.audit-type {
+    display: inline-block; padding: 2px 9px; border-radius: 4px;
+    font-size: .74rem; font-weight: 700; margin-top: 4px;
+}
+.audit-type.creation     { background: var(--vert-brume);  color: var(--vert-nuit); }
+.audit-type.modification { background: var(--bleu-voile);  color: var(--bleu); }
+.audit-type.suppression  { background: var(--rouge-voile); color: #991B1B; }
+.audit-type.connexion    { background: var(--ambre-voile); color: var(--ambre); }
+.audit-description { color: #4B5563; font-size: .92rem; line-height: 1.45; }
+.audit-meta { font-size: .78rem; color: var(--gris-clair); margin-top: 8px; }
+
+.etat-vide {
+    color: var(--gris-clair); text-align: center;
+    padding: 44px 20px; font-size: .95rem; line-height: 1.6;
+}

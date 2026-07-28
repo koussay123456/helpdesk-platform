@@ -1,0 +1,185 @@
+/* ==========================================================================
+   Composants réutilisables : tables, filtres, fenêtres, indicateurs.
+   ========================================================================== */
+
+/* ============================================================
+   TABLES, RECHERCHE FILTRÉE ET ASCENSEURS
+   Composants communs aux trois espaces.
+   ============================================================ */
+
+/* Bandeau d'outils au-dessus de chaque table */
+.outils-table {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    margin-bottom: 16px;
+}
+.champ-recherche {
+    flex: 1 1 240px; min-width: 200px;
+    padding: 10px 15px; border: 1px solid var(--bordure);
+    border-radius: 999px; font-family: inherit; font-size: .9rem;
+    background: #fff; transition: all .2s;
+}
+.champ-recherche:focus {
+    outline: none; border-color: var(--vert);
+    box-shadow: 0 0 0 3px rgba(0, 168, 89, .12);
+}
+.filtre-select {
+    padding: 10px 14px; border: 1px solid var(--bordure);
+    border-radius: 999px; font-family: inherit; font-size: .88rem;
+    background: #fff; color: var(--encre); cursor: pointer; transition: all .2s;
+}
+.filtre-select:focus {
+    outline: none; border-color: var(--vert);
+    box-shadow: 0 0 0 3px rgba(0, 168, 89, .12);
+}
+.compte-resultats {
+    margin-left: auto; font-size: .84rem; color: var(--gris); white-space: nowrap;
+}
+
+/* Bouton d'ajout, en tête de l'en-tête donc tout en haut à gauche */
+.btn-plus {
+    width: 42px; height: 42px; flex-shrink: 0;
+    border: none; border-radius: 12px;
+    background: var(--vert); color: #fff;
+    font-size: 1.15rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 3px 10px rgba(0, 168, 89, .28);
+    transition: all .2s;
+}
+.btn-plus:hover { background: var(--vert-fonce); transform: translateY(-2px); }
+.entete-gauche { display: flex; align-items: center; gap: 16px; min-width: 0; }
+
+/* Zone défilante : la table garde son en-tête visible pendant le défilement */
+.table-defilante {
+    overflow: auto;
+    max-height: 62vh;
+    border: 1px solid var(--bordure);
+    border-radius: var(--rayon);
+    background: #fff;
+}
+.table-defilante table { min-width: 780px; }
+.table-defilante thead th {
+    position: sticky; top: 0; z-index: 2;
+    background: var(--vert-brume);
+    box-shadow: inset 0 -2px 0 var(--vert);
+}
+
+.liste-defilante { overflow-y: auto; max-height: 62vh; padding-right: 6px; }
+
+/* Pied de fenêtre : validation et annulation, toujours au même endroit */
+.modal-boutons {
+    display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap;
+}
+.btn-valider, .btn-annuler {
+    padding: 11px 22px; border-radius: 8px;
+    font-family: inherit; font-size: .9rem; font-weight: 600;
+    cursor: pointer; transition: all .2s;
+    display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-valider { background: var(--vert); color: #fff; border: none; }
+.btn-valider:hover { background: var(--vert-fonce); }
+.btn-annuler {
+    background: #fff; color: var(--gris);
+    border: 1px solid var(--bordure);
+}
+.btn-annuler:hover { border-color: var(--gris); color: var(--encre); }
+.btn-valider.danger { background: var(--rouge); }
+.btn-valider.danger:hover { background: #B91C1C; }
+
+/* Indicateurs de performance */
+.grille-kpi {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 14px; margin-bottom: 22px;
+}
+.carte-kpi {
+    background: #fff; border: 1px solid var(--bordure);
+    border-left: 4px solid var(--vert);
+    border-radius: var(--rayon); padding: 16px 18px;
+}
+.carte-kpi span {
+    display: block; font-size: .76rem; color: var(--gris);
+    text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px;
+}
+.carte-kpi strong { font-size: 1.7rem; font-weight: 800; color: var(--vert); line-height: 1; }
+.carte-kpi small { display: block; margin-top: 5px; font-size: .76rem; color: var(--gris-clair); }
+
+.periode-kpi {
+    display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin-bottom: 18px;
+}
+.periode-kpi label {
+    display: block; font-size: .78rem; font-weight: 600;
+    color: var(--gris); margin-bottom: 5px;
+}
+.periode-kpi input[type="date"] {
+    padding: 9px 13px; border: 1px solid var(--bordure);
+    border-radius: 8px; font-family: inherit; font-size: .88rem;
+}
+.periode-kpi input[type="date"]:focus {
+    outline: none; border-color: var(--vert);
+    box-shadow: 0 0 0 3px rgba(0, 168, 89, .12);
+}
+
+.barre-taux {
+    height: 8px; border-radius: 999px; background: #EDF1F4;
+    overflow: hidden; min-width: 90px;
+}
+.barre-taux span {
+    display: block; height: 100%; border-radius: 999px;
+    background: linear-gradient(90deg, var(--vert) 0%, var(--vert-fonce) 100%);
+}
+
+.section-bloc {
+    background: #fff; border-radius: var(--rayon);
+    padding: 22px; box-shadow: var(--ombre); margin-bottom: 26px;
+}
+.section-bloc h3 {
+    font-size: 1.02rem; font-weight: 600; color: var(--vert-nuit);
+    margin-bottom: 16px; display: flex; align-items: center; gap: 9px;
+}
+.section-bloc h3 i { color: var(--vert); }
+
+@media (max-width: 768px) {
+    .table-defilante { max-height: 52vh; }
+    .compte-resultats { margin-left: 0; }
+}
+
+/* --------------------------------------------------------------------------
+   Étiquette d'en-tête de fenêtre modale
+   -------------------------------------------------------------------------- */
+.etiquette-modale {
+    display: inline-block;
+    background: var(--vert); color: #fff;
+    padding: 4px 11px; border-radius: 6px;
+    font-size: .8rem; font-weight: 800; letter-spacing: .04em;
+}
+.etiquette-modale.danger { background: var(--rouge); }
+
+/* --------------------------------------------------------------------------
+   Jauge de robustesse du mot de passe
+   Employée là où un mot de passe est choisi : « Mon compte » et la création
+   d'un compte par l'administrateur.
+   -------------------------------------------------------------------------- */
+.jauge { display: none; margin-top: 10px; }
+.jauge.visible { display: block; }
+
+.jauge-piste {
+    height: 5px; border-radius: 999px;
+    background: #EDF1F4; overflow: hidden;
+}
+.jauge-barre {
+    height: 100%; width: 0; border-radius: 999px;
+    transition: width .25s, background .25s;
+}
+.jauge-legende {
+    display: flex; justify-content: space-between;
+    margin-top: 6px; font-size: .74rem; color: var(--gris);
+}
+.jauge-faible { background: var(--rouge); }
+.jauge-moyen  { background: #EA580C; }
+.jauge-fort   { background: var(--vert-fonce); }
+
+/* Compte protégé : signalé dans la table, insensible aux actions */
+.badge-protege {
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-left: 6px; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--ambre-voile); color: var(--ambre); font-size: .68rem;
+}

@@ -1,38 +1,30 @@
 package com.gestion.incidents.incidentmanager.service;
 
-import com.gestion.incidents.incidentmanager.dto.AuditLogDTO;
-import com.gestion.incidents.incidentmanager.dto.ChatMessageDTO;
-import com.gestion.incidents.incidentmanager.dto.ContactDTO;
+import com.gestion.incidents.incidentmanager.dto.InterventionDTO;
 import com.gestion.incidents.incidentmanager.dto.TicketResumeDTO;
 import com.gestion.incidents.incidentmanager.model.*;
 import com.gestion.incidents.incidentmanager.repository.AuditLogRepository;
 import com.gestion.incidents.incidentmanager.repository.DemandeAccesRepository;
 import com.gestion.incidents.incidentmanager.repository.InterventionRepository;
-import com.gestion.incidents.incidentmanager.repository.MessageRepository;
 import com.gestion.incidents.incidentmanager.repository.TicketRepository;
 import com.gestion.incidents.incidentmanager.repository.UtilisateurRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.Comparator;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
 @Transactional
 public class HelpDeskService {
 
-    private static final int LIMITE_RESULTATS_RECHERCHE = 12;
-
     private final TicketRepository ticketRepository;
     private final UtilisateurRepository utilisateurRepository;
     private final InterventionRepository interventionRepository;
-
-    @Autowired
-    private MessageRepository messageRepository;
 
     @Autowired
     private AuditLogRepository auditLogRepository;
@@ -59,64 +51,9 @@ public class HelpDeskService {
         return auditLogRepository.save(log);
     }
 
-    @Transactional(readOnly = true)
-    public List<AuditLogDTO> obtenirTousLesLogs() {
-        return auditLogRepository.findAllOrderByDateDesc().stream()
-                .map(AuditLogDTO::from)
-                .collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public List<AuditLogDTO> obtenirLogsRecents(int limite) {
-        return auditLogRepository.findAllOrderByDateDesc().stream()
-                .limit(Math.max(1, limite))
-                .map(AuditLogDTO::from)
-                .collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public List<AuditLogDTO> obtenirLogsByUtilisateur(Long utilisateurId) {
-        Utilisateur utilisateur = utilisateurRepository.findById(utilisateurId)
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
-        return auditLogRepository.findByUtilisateur(utilisateur).stream()
-                .map(AuditLogDTO::from)
-                .collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public List<AuditLogDTO> obtenirLogsByTypeAction(String typeAction) {
-        return auditLogRepository.findByTypeAction(typeAction).stream()
-                .map(AuditLogDTO::from)
-                .collect(Collectors.toList());
-    }
-
     // ============================================================
     // AUTHENTIFICATION
     // ============================================================
-
-    /**
-     * Domaine en vigueur : toute adresse créée ou modifiée doit s'y conformer.
-     */
-    public static final String DOMAINE_ENTREPRISE = "@kipropha.tn";
-
-    /**
-     * Ancien domaine, encore accepté à la connexion. Les comptes historiques
-     * continuent de fonctionner tant qu'ils n'ont pas été migrés ; seules les
-     * adresses nouvellement saisies sont contraintes au domaine en vigueur.
-     */
-    public static final String DOMAINE_HISTORIQUE = "@kipropha.com";
-
-    /** Adresse recevable pour se connecter : domaine en vigueur ou historique. */
-    public static boolean estAdresseEntreprise(String email) {
-        if (email == null) return false;
-        String normalisee = email.trim().toLowerCase();
-        return normalisee.endsWith(DOMAINE_ENTREPRISE) || normalisee.endsWith(DOMAINE_HISTORIQUE);
-    }
-
-    /** Adresse recevable à la création ou à la modification d'un compte. */
-    public static boolean estAdresseCourante(String email) {
-        return email != null && email.trim().toLowerCase().endsWith(DOMAINE_ENTREPRISE);
-    }
 
     public Utilisateur authentifier(String email, String motDePasse) {
         Optional<Utilisateur> utilisateur = utilisateurRepository.findByEmail(email);
@@ -294,7 +231,7 @@ public class HelpDeskService {
      * Une ligne est écrite dans la table intervention, horodatée par le
      * serveur, et le geste est tracé dans le journal d'audit.
      */
-    public ChatMessageDTO enregistrerIntervention(Long ticketId, Long auteurId, String commentaire) {
+    public InterventionDTO enregistrerIntervention(Long ticketId, Long auteurId, String commentaire) {
         if (commentaire == null || commentaire.trim().isEmpty()) {
             throw new RuntimeException("Le commentaire d'intervention est vide");
         }
@@ -318,7 +255,7 @@ public class HelpDeskService {
                 "Intervention enregistrée sur le ticket #" + ticketId,
                 "INTERVENTION", sauvegardee.getId());
 
-        return ChatMessageDTO.from(sauvegardee);
+        return InterventionDTO.from(sauvegardee);
     }
 
     /**
@@ -367,9 +304,8 @@ public class HelpDeskService {
     public DemandeAcces enregistrerDemandeAcces(String type, String nom, String prenom,
                                                 String email, String contactAlternatif,
                                                 String description) {
-        if (!estAdresseEntreprise(email)) {
-            throw new RuntimeException("Seules les adresses " + DOMAINE_ENTREPRISE
-                    + " ou " + DOMAINE_HISTORIQUE + " sont acceptées");
+        if (email == null || email.isBlank()) {
+            throw new RuntimeException("L'adresse e-mail est obligatoire");
         }
 
         String typeRetenu = DemandeAcces.TYPE_ACCES_BLOQUE.equals(type)
@@ -398,10 +334,42 @@ public class HelpDeskService {
                         "DEMANDE_ACCES", demandeId));
     }
 
+    /**
+     * Refuse toute opération portant sur un compte protégé.
+     * Le contrôle vit dans le service et non dans l'interface : masquer un
+     * bouton n'empêche personne d'appeler la route directement.
+     */
+    private void refuserSiProtege(Utilisateur utilisateur) {
+        if (utilisateur.isSuperAdmin()) {
+            throw new RuntimeException("Le compte " + utilisateur.getEmail()
+                    + " est protégé : il ne peut être ni modifié, ni supprimé.");
+        }
+    }
+
+    /** Suppression d'un compte, hors comptes protégés. */
+    public void supprimerUtilisateur(Long utilisateurId, Long adminId) {
+        Utilisateur utilisateur = utilisateurRepository.findById(utilisateurId)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+        refuserSiProtege(utilisateur);
+
+        if (adminId != null && adminId > 0) {
+            utilisateurRepository.findById(adminId).ifPresent(admin ->
+                    enregistrerAudit(admin, "SUPPRESSION",
+                            "Suppression du compte " + utilisateur.getNomComplet()
+                                    + " (" + utilisateur.getEmail() + ")",
+                            "UTILISATEUR", utilisateurId));
+        }
+
+        utilisateurRepository.deleteById(utilisateurId);
+    }
+
     /** Active ou désactive un compte. */
     public Utilisateur changerStatutCompte(Long utilisateurId, boolean actif, Long adminId) {
         Utilisateur utilisateur = utilisateurRepository.findById(utilisateurId)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+        refuserSiProtege(utilisateur);
 
         utilisateur.setActif(actif);
         Utilisateur misAJour = utilisateurRepository.save(utilisateur);
@@ -418,53 +386,6 @@ public class HelpDeskService {
     // ============================================================
     // MON COMPTE
     // ============================================================
-
-    /**
-     * Le titulaire modifie son état civil. Ni le rôle ni l'adresse e-mail ne
-     * sont modifiables ici : l'adresse est l'identifiant de connexion, le rôle
-     * relève de l'administration.
-     */
-    public Utilisateur mettreAJourMonCompte(Long utilisateurId, String nom, String prenom) {
-        if (nom == null || nom.isBlank() || prenom == null || prenom.isBlank()) {
-            throw new RuntimeException("Le nom et le prénom sont obligatoires");
-        }
-
-        Utilisateur utilisateur = utilisateurRepository.findById(utilisateurId)
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
-
-        utilisateur.setNom(nom.trim());
-        utilisateur.setPrenom(prenom.trim());
-        Utilisateur misAJour = utilisateurRepository.save(utilisateur);
-
-        enregistrerAudit(misAJour, "MODIFICATION",
-                "Mise à jour de ses coordonnées",
-                "UTILISATEUR", utilisateurId);
-
-        return misAJour;
-    }
-
-    /** Changement de mot de passe par son titulaire, après vérification de l'ancien. */
-    public void changerMotDePasse(Long utilisateurId, String ancien, String nouveau) {
-        Utilisateur utilisateur = utilisateurRepository.findById(utilisateurId)
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
-
-        if (ancien == null || !ancien.equals(utilisateur.getMotDePasse())) {
-            throw new RuntimeException("Le mot de passe actuel est incorrect");
-        }
-        if (nouveau == null || nouveau.length() < 8) {
-            throw new RuntimeException("Le nouveau mot de passe doit faire au moins 8 caractères");
-        }
-        if (nouveau.equals(ancien)) {
-            throw new RuntimeException("Le nouveau mot de passe doit être différent de l'ancien");
-        }
-
-        utilisateur.setMotDePasse(nouveau);
-        utilisateurRepository.save(utilisateur);
-
-        enregistrerAudit(utilisateur, "MODIFICATION",
-                "Changement de son mot de passe",
-                "UTILISATEUR", utilisateurId);
-    }
 
     /** Historique complet des tickets d'un demandeur, clôturés compris. */
     @Transactional(readOnly = true)
@@ -483,136 +404,19 @@ public class HelpDeskService {
     }
 
     // ============================================================
-    // MESSAGES NON LUS
+    // LECTURE D'UN TICKET
     // ============================================================
 
-    /** Repère utilisé quand la personne n'a jamais ouvert sa messagerie. */
-    private static final LocalDateTime ORIGINE = LocalDateTime.of(1970, 1, 1, 0, 0);
-
     /**
-     * Nombre de messages non lus, toutes sources confondues : fils de tickets
-     * et conversations directes. Un message compte s'il vient de quelqu'un
-     * d'autre et s'il est postérieur à la dernière ouverture de l'onglet.
-     */
-    @Transactional(readOnly = true)
-    public Map<String, Object> compterMessagesNonLus(Long utilisateurId) {
-        Utilisateur utilisateur = utilisateurRepository.findById(utilisateurId)
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
-
-        LocalDateTime depuis = utilisateur.getDerniereVisiteMessagerie() != null
-                ? utilisateur.getDerniereVisiteMessagerie()
-                : ORIGINE;
-
-        long tickets = interventionRepository.compterNonLus(
-                utilisateur.getId(), utilisateur.getEmail(), depuis);
-        long directs = messageRepository.compterNonLus(
-                utilisateur.getId(), utilisateur.getEmail(), depuis);
-
-        Map<String, Object> resultat = new LinkedHashMap<>();
-        resultat.put("total", tickets + directs);
-        resultat.put("tickets", tickets);
-        resultat.put("directs", directs);
-        resultat.put("depuis", depuis.equals(ORIGINE) ? null : depuis);
-        return resultat;
-    }
-
-    /** Marque la messagerie comme consultée à l'instant. */
-    public void marquerMessagerieVue(Long utilisateurId) {
-        Utilisateur utilisateur = utilisateurRepository.findById(utilisateurId)
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
-
-        utilisateur.setDerniereVisiteMessagerie(LocalDateTime.now());
-        utilisateurRepository.save(utilisateur);
-    }
-
-    // ============================================================
-    // MESSAGERIE (fil de ticket + conversation directe par e-mail)
-    // ============================================================
-
-    private static final Pattern EMAIL = Pattern.compile("^[\\w.+-]+@[\\w-]+\\.[\\w.-]+$");
-
-    public static boolean estUnEmail(String valeur) {
-        return valeur != null && EMAIL.matcher(valeur.trim()).matches();
-    }
-
-    /**
-     * Recherche hybride de la barre de la messagerie.
-     * Renvoie deux listes : les tickets correspondants et les personnes
-     * correspondantes. Si le critère est une adresse e-mail inconnue de la
-     * plateforme, elle est proposée comme contact externe.
-     */
-    @Transactional(readOnly = true)
-    public Map<String, Object> rechercheMessagerie(String critere) {
-        String q = critere == null ? "" : critere.trim();
-
-        Map<String, Object> resultat = new LinkedHashMap<>();
-        resultat.put("tickets", rechercherTicketsPourChat(q));
-
-        List<ContactDTO> contacts = new ArrayList<>();
-        if (!q.isEmpty()) {
-            utilisateurRepository.rechercher(q).stream()
-                    .limit(LIMITE_RESULTATS_RECHERCHE)
-                    .map(ContactDTO::from)
-                    .forEach(contacts::add);
-
-            boolean dejaConnu = contacts.stream().anyMatch(c -> c.getEmail().equalsIgnoreCase(q));
-            if (estUnEmail(q) && !dejaConnu) {
-                contacts.add(ContactDTO.externe(q.toLowerCase()));
-            }
-        }
-        resultat.put("contacts", contacts);
-        return resultat;
-    }
-
-    /**
-     * Alimente la liste des tickets. Accepte un identifiant ("108", "#108",
-     * "TKT-000108") ou un fragment de titre / description.
-     */
-    @Transactional(readOnly = true)
-    public List<TicketResumeDTO> rechercherTicketsPourChat(String critere) {
-        String q = critere == null ? "" : critere.trim();
-
-        Map<Long, Ticket> resultats = new LinkedHashMap<>();
-
-        if (q.isEmpty()) {
-            ticketRepository.findRecentsAvecPersonnes().stream()
-                    .limit(LIMITE_RESULTATS_RECHERCHE)
-                    .forEach(t -> resultats.put(t.getId(), t));
-        } else {
-            // 1. Correspondance exacte sur l'identifiant : "#108", "TKT-000108", "108"
-            String chiffres = q.replaceAll("\\D", "");
-            if (!chiffres.isEmpty() && chiffres.length() <= 18) {
-                try {
-                    Long id = Long.parseLong(chiffres);
-                    ticketRepository.findByIdAvecPersonnes(id)
-                            .ifPresent(t -> resultats.put(t.getId(), t));
-                } catch (NumberFormatException ignored) {
-                    // critère purement textuel
-                }
-            }
-            // 2. Correspondance textuelle sur le titre / la description
-            ticketRepository.rechercherPourChat(q).forEach(t -> resultats.putIfAbsent(t.getId(), t));
-        }
-
-        return resultats.values().stream()
-                .limit(LIMITE_RESULTATS_RECHERCHE)
-                .map(t -> TicketResumeDTO.from(t, interventionRepository.countByTicket(t)))
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Un ticket n'est lisible que par ses participants : le demandeur, le
-     * support qui en a la charge, et les administrateurs. Le contrôle est fait
-     * ici, côté serveur : l'interface masque ce qui n'est pas accessible, le
-     * service le refuse.
+     * Un ticket n'est consultable que par ses participants : le demandeur, le
+     * technicien qui en a la charge, un agent de support ou un administrateur.
+     * Le contrôle est fait ici, côté serveur : l'interface masque ce qui n'est
+     * pas accessible, le service le refuse.
      */
     private Utilisateur verifierAccesTicket(Ticket ticket, Long utilisateurId) {
         Utilisateur demandeur = utilisateurRepository.findById(utilisateurId)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
 
-        // Le Kanban global du Support IT expose volontairement tous les tickets :
-        // un technicien doit pouvoir ouvrir un ticket libre pour se l'assigner.
-        // Seul l'utilisateur final reste cantonné à ses propres tickets.
         boolean autorise = demandeur.getRole() == Role.ADMINISTRATEUR
                 || demandeur.getRole() == Role.SUPPORT_IT
                 || (ticket.getUtilisateur() != null
@@ -621,12 +425,12 @@ public class HelpDeskService {
                 && Objects.equals(ticket.getSupportIt().getId(), demandeur.getId()));
 
         if (!autorise) {
-            throw new RuntimeException("Ce ticket ne fait pas partie de vos conversations");
+            throw new RuntimeException("Ce ticket ne vous est pas accessible");
         }
         return demandeur;
     }
 
-    /** Résumé enrichi de l'aperçu du dernier échange. */
+    /** Résumé d'un ticket, enrichi de l'aperçu du dernier échange. */
     private TicketResumeDTO resumeAvecApercu(Ticket ticket) {
         TicketResumeDTO dto = TicketResumeDTO.from(ticket, interventionRepository.countByTicket(ticket));
 
@@ -639,77 +443,6 @@ public class HelpDeskService {
         return dto;
     }
 
-    /**
-     * Mes conversations, dans les deux dimensions de la messagerie :
-     *   tickets  : ceux que j'ai ouverts et ceux qui me sont affectés
-     *   contacts : les personnes avec qui j'ai échangé hors ticket
-     *
-     * Sans le second volet, un message direct reçu n'apparaissait nulle part
-     * dans la colonne de gauche et son expéditeur restait introuvable.
-     */
-    @Transactional(readOnly = true)
-    public Map<String, Object> obtenirMesConversations(Long utilisateurId) {
-        Utilisateur moi = utilisateurRepository.findById(utilisateurId)
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
-
-        List<TicketResumeDTO> tickets = ticketRepository.findParticipations(utilisateurId).stream()
-                .map(this::resumeAvecApercu)
-                .sorted(Comparator.comparing(
-                                (TicketResumeDTO t) -> t.getDateDernierMessage() != null
-                                        ? t.getDateDernierMessage()
-                                        : LocalDateTime.MIN)
-                        .reversed())
-                .collect(Collectors.toList());
-
-        Map<String, Object> resultat = new LinkedHashMap<>();
-        resultat.put("tickets", tickets);
-        resultat.put("contacts", obtenirMesCorrespondants(moi));
-        return resultat;
-    }
-
-    /**
-     * Un correspondant par personne, avec l'aperçu du dernier échange.
-     * Les messages arrivent déjà triés du plus récent au plus ancien : la
-     * première occurrence rencontrée est donc la bonne.
-     */
-    private List<ContactDTO> obtenirMesCorrespondants(Utilisateur moi) {
-        Map<String, ContactDTO> parCorrespondant = new LinkedHashMap<>();
-
-        for (Message message : messageRepository.findMesEchangesDirects(moi.getId(), moi.getEmail())) {
-            boolean jeSuisAuteur = message.getAuteur() != null
-                    && Objects.equals(message.getAuteur().getId(), moi.getId());
-
-            String autre = jeSuisAuteur
-                    ? message.getDestinataire()
-                    : (message.getAuteur() != null ? message.getAuteur().getEmail() : null);
-
-            // On écarte les annonces globales et les messages que je me serais
-            // adressés à moi-même : ce ne sont pas des conversations.
-            if (autre == null || autre.isBlank()
-                    || autre.equalsIgnoreCase("TOUS")
-                    || autre.equalsIgnoreCase(moi.getEmail())) {
-                continue;
-            }
-
-            String cle = autre.toLowerCase();
-            if (parCorrespondant.containsKey(cle)) {
-                continue;
-            }
-
-            ContactDTO contact = utilisateurRepository.findByEmail(cle)
-                    .map(ContactDTO::from)
-                    .orElseGet(() -> ContactDTO.externe(cle));
-
-            String auteurNom = jeSuisAuteur ? "Vous"
-                    : (message.getAuteur() != null ? message.getAuteur().getNomComplet() : "");
-
-            contact.setDernierMessage(message.getContenu(), auteurNom, message.getDateEnvoi());
-            parCorrespondant.put(cle, contact);
-        }
-
-        return new ArrayList<>(parCorrespondant.values());
-    }
-
     @Transactional(readOnly = true)
     public TicketResumeDTO obtenirResumeTicket(Long ticketId, Long utilisateurId) {
         Ticket ticket = ticketRepository.findByIdAvecPersonnes(ticketId)
@@ -719,122 +452,14 @@ public class HelpDeskService {
     }
 
     @Transactional(readOnly = true)
-    public List<ChatMessageDTO> obtenirConversationTicket(Long ticketId, Long utilisateurId) {
+    public List<InterventionDTO> obtenirConversationTicket(Long ticketId, Long utilisateurId) {
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new RuntimeException("Ticket non trouvé"));
         verifierAccesTicket(ticket, utilisateurId);
 
         return interventionRepository.findDiscussionByTicketId(ticketId).stream()
-                .map(ChatMessageDTO::from)
+                .map(InterventionDTO::from)
                 .collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public List<ChatMessageDTO> obtenirConversationDirecte(Long utilisateurId, String email) {
-        Utilisateur moi = utilisateurRepository.findById(utilisateurId)
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
-
-        return messageRepository.findConversation(moi.getEmail(), email).stream()
-                .map(ChatMessageDTO::from)
-                .collect(Collectors.toList());
-    }
-
-    public ChatMessageDTO envoyerMessageTicket(Long ticketId, Long auteurId,
-                                               String contenu, String destinataires) {
-        if (contenu == null || contenu.trim().isEmpty()) {
-            throw new RuntimeException("Le message est vide");
-        }
-
-        Ticket ticket = ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new RuntimeException("Ticket non trouvé"));
-
-        Utilisateur auteur = verifierAccesTicket(ticket, auteurId);
-
-        String cibles = (destinataires == null || destinataires.trim().isEmpty())
-                ? null : destinataires.trim();
-
-        Intervention intervention = interventionRepository.save(
-                new Intervention(ticket, contenu.trim(), auteur, cibles));
-
-        return ChatMessageDTO.from(intervention);
-    }
-
-    public ChatMessageDTO envoyerMessageDirect(Long auteurId, String email, String contenu) {
-        if (contenu == null || contenu.trim().isEmpty()) {
-            throw new RuntimeException("Le message est vide");
-        }
-        if (!estUnEmail(email)) {
-            throw new RuntimeException("Adresse e-mail invalide : " + email);
-        }
-
-        Utilisateur auteur = utilisateurRepository.findById(auteurId)
-                .orElseThrow(() -> new RuntimeException("Auteur non trouvé"));
-
-        Message message = messageRepository.save(
-                new Message(auteur, contenu.trim(), email.trim().toLowerCase()));
-
-        return ChatMessageDTO.from(message);
-    }
-
-    /** Un utilisateur ne modifie que ses propres messages. Contrôle côté serveur. */
-    public ChatMessageDTO modifierMessage(String source, Long messageId,
-                                          Long utilisateurId, String contenu) {
-        if (contenu == null || contenu.trim().isEmpty()) {
-            throw new RuntimeException("Le message ne peut pas être vide");
-        }
-
-        if (ChatMessageDTO.SOURCE_DIRECT.equalsIgnoreCase(source)) {
-            Message message = messageRepository.findById(messageId)
-                    .orElseThrow(() -> new RuntimeException("Message introuvable"));
-            verifierAuteur(message.getAuteur(), utilisateurId);
-
-            message.setContenu(contenu.trim());
-            message.setDateModification(LocalDateTime.now());
-            return ChatMessageDTO.from(messageRepository.save(message));
-        }
-
-        Intervention intervention = interventionRepository.findById(messageId)
-                .orElseThrow(() -> new RuntimeException("Message introuvable"));
-        verifierAuteur(intervention.getAuteur(), utilisateurId);
-
-        intervention.setCommentaire(contenu.trim());
-        intervention.setDateModification(LocalDateTime.now());
-        return ChatMessageDTO.from(interventionRepository.save(intervention));
-    }
-
-    /** Un utilisateur ne supprime que ses propres messages. Contrôle côté serveur. */
-    public void supprimerMessage(String source, Long messageId, Long utilisateurId) {
-        Utilisateur demandeur = utilisateurRepository.findById(utilisateurId)
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
-
-        if (ChatMessageDTO.SOURCE_DIRECT.equalsIgnoreCase(source)) {
-            Message message = messageRepository.findById(messageId)
-                    .orElseThrow(() -> new RuntimeException("Message introuvable"));
-            verifierAuteur(message.getAuteur(), utilisateurId);
-
-            messageRepository.delete(message);
-            enregistrerAudit(demandeur, "SUPPRESSION",
-                    "Suppression d'un message direct adressé à " + message.getDestinataire(),
-                    "MESSAGE", messageId);
-            return;
-        }
-
-        Intervention intervention = interventionRepository.findById(messageId)
-                .orElseThrow(() -> new RuntimeException("Message introuvable"));
-        verifierAuteur(intervention.getAuteur(), utilisateurId);
-
-        Long ticketId = intervention.getTicket() != null ? intervention.getTicket().getId() : null;
-        interventionRepository.delete(intervention);
-
-        enregistrerAudit(demandeur, "SUPPRESSION",
-                "Suppression d'un message du ticket #" + ticketId,
-                "MESSAGE", messageId);
-    }
-
-    private void verifierAuteur(Utilisateur auteur, Long utilisateurId) {
-        if (auteur == null || !Objects.equals(auteur.getId(), utilisateurId)) {
-            throw new RuntimeException("Vous ne pouvez agir que sur vos propres messages");
-        }
     }
 
     // ============================================================
@@ -935,6 +560,83 @@ public class HelpDeskService {
         return stats;
     }
 
+    /**
+     * Indicateurs de performance des agents sur une période.
+     *
+     * Le périmètre retenu est celui des tickets ouverts dans la période : un
+     * agent n'est pas jugé sur des dossiers antérieurs à celle-ci. Le délai de
+     * résolution ne compte que les tickets effectivement résolus, sans quoi un
+     * dossier encore ouvert ferait artificiellement baisser la moyenne.
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> obtenirIndicateursPerformance(LocalDateTime debut, LocalDateTime fin) {
+        List<Ticket> periode = ticketRepository.findParPeriode(debut, fin);
+
+        List<Map<String, Object>> agents = new ArrayList<>();
+        long totalResolus = 0;
+        double totalHeures = 0;
+        long nbMesures = 0;
+
+        for (Utilisateur agent : utilisateurRepository.findByRole(Role.SUPPORT_IT)) {
+            List<Ticket> siens = periode.stream()
+                    .filter(t -> t.getSupportIt() != null
+                            && Objects.equals(t.getSupportIt().getId(), agent.getId()))
+                    .collect(Collectors.toList());
+
+            List<Ticket> resolus = siens.stream()
+                    .filter(t -> t.getStatut() == Statut.RESOLU || t.getStatut() == Statut.FERME)
+                    .collect(Collectors.toList());
+
+            long enCours = siens.stream()
+                    .filter(t -> t.getStatut() == Statut.NOUVEAU || t.getStatut() == Statut.EN_COURS)
+                    .count();
+
+            double heures = 0;
+            long mesures = 0;
+            for (Ticket t : resolus) {
+                if (t.getDateCreation() != null && t.getDateResolution() != null) {
+                    heures += Duration.between(t.getDateCreation(), t.getDateResolution()).toMinutes() / 60.0;
+                    mesures++;
+                }
+            }
+
+            Map<String, Object> ligne = new LinkedHashMap<>();
+            ligne.put("id", agent.getId());
+            ligne.put("nom", agent.getNomComplet());
+            ligne.put("email", agent.getEmail());
+            ligne.put("assignes", siens.size());
+            ligne.put("resolus", resolus.size());
+            ligne.put("enCours", enCours);
+            ligne.put("tauxResolution", siens.isEmpty() ? 0
+                    : Math.round(resolus.size() * 1000.0 / siens.size()) / 10.0);
+            ligne.put("delaiMoyenHeures", mesures == 0 ? null
+                    : Math.round(heures / mesures * 10) / 10.0);
+            agents.add(ligne);
+
+            totalResolus += resolus.size();
+            totalHeures += heures;
+            nbMesures += mesures;
+        }
+
+        agents.sort((a, b) -> Integer.compare((Integer) b.get("resolus"), (Integer) a.get("resolus")));
+
+        Map<String, Object> global = new LinkedHashMap<>();
+        global.put("ticketsPeriode", periode.size());
+        global.put("ticketsResolus", totalResolus);
+        global.put("tauxResolution", periode.isEmpty() ? 0
+                : Math.round(totalResolus * 1000.0 / periode.size()) / 10.0);
+        global.put("delaiMoyenHeures", nbMesures == 0 ? null
+                : Math.round(totalHeures / nbMesures * 10) / 10.0);
+        global.put("nonAssignes", periode.stream().filter(t -> t.getSupportIt() == null).count());
+
+        Map<String, Object> resultat = new LinkedHashMap<>();
+        resultat.put("debut", debut);
+        resultat.put("fin", fin);
+        resultat.put("global", global);
+        resultat.put("agents", agents);
+        return resultat;
+    }
+
     @Transactional(readOnly = true)
     public Map<String, Object> obtenirStatistiquesSupports() {
         List<Utilisateur> supportIts = utilisateurRepository.findByRole(Role.SUPPORT_IT);
@@ -992,25 +694,6 @@ public class HelpDeskService {
         return stats;
     }
 
-    // ============================================================
-    // ANNONCES GLOBALES (ancienne messagerie, conservée)
-    // ============================================================
-
-    public Message envoyerMessage(Long auteurId, String contenu, String destinataire) {
-        Utilisateur auteur = utilisateurRepository.findById(auteurId)
-                .orElseThrow(() -> new RuntimeException("Auteur non trouvé"));
-
-        return messageRepository.save(new Message(auteur, contenu, destinataire));
-    }
-
-    @Transactional(readOnly = true)
-    public List<Message> obtenirTousLesMessages() {
-        return messageRepository.findAllMessages();
-    }
-
-    public void supprimerMessage(Long messageId) {
-        messageRepository.deleteById(messageId);
-    }
 
     // ============================================================
     // UTILISATEURS
@@ -1023,8 +706,8 @@ public class HelpDeskService {
 
     public Utilisateur creerUtilisateur(String nom, String prenom, String email, String motDePasse,
                                         Role role, String departement, Long adminId) {
-        if (!estAdresseCourante(email)) {
-            throw new RuntimeException("L'adresse doit se terminer par " + DOMAINE_ENTREPRISE);
+        if (email == null || email.isBlank()) {
+            throw new RuntimeException("L'adresse e-mail est obligatoire");
         }
         if (utilisateurRepository.findByEmail(email).isPresent()) {
             throw new RuntimeException("Email déjà utilisé");
@@ -1054,6 +737,8 @@ public class HelpDeskService {
         Utilisateur utilisateur = utilisateurRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
 
+        refuserSiProtege(utilisateur);
+
         List<String> changements = new ArrayList<>();
 
         if (renseigne(nom) && !nom.trim().equals(utilisateur.getNom())) {
@@ -1076,9 +761,6 @@ public class HelpDeskService {
         if (renseigne(email) && !email.trim().equalsIgnoreCase(utilisateur.getEmail())) {
             String nouvelEmail = email.trim().toLowerCase();
 
-            if (!estAdresseCourante(nouvelEmail)) {
-                throw new RuntimeException("L'adresse doit se terminer par " + DOMAINE_ENTREPRISE);
-            }
             if (utilisateurRepository.findByEmail(nouvelEmail)
                     .filter(autre -> !Objects.equals(autre.getId(), userId)).isPresent()) {
                 throw new RuntimeException("Cette adresse est déjà utilisée par un autre compte");

@@ -1,0 +1,82 @@
+/* ==========================================================================
+   Page de connexion.
+   ========================================================================== */
+
+/* ============================================================
+   PAGE DE CONNEXION
+   Un seul panneau centré, sur fond blanc au motif Kipropha.
+   Vert et blanc uniquement, aucun autre accent de couleur.
+   ============================================================ */
+#loginScreen {
+    background: transparent;
+    align-items: center; justify-content: center;
+    padding: 24px; overflow-y: auto;
+}
+
+.carte-connexion {
+    width: min(420px, 100%); margin: auto;
+    background: #fff;
+    border: 1px solid var(--bordure);
+    border-radius: var(--rayon-l);
+    box-shadow: 0 10px 40px rgba(0, 113, 63, .10);
+    padding: 40px 38px;
+    text-align: center;
+}
+
+.connexion-marque { margin-bottom: 30px; }
+.connexion-marque img { width: 210px; max-width: 70%; }
+.connexion-marque .repli { display: none; font-size: 1.8rem; font-weight: 900; color: var(--vert-nuit); }
+.connexion-marque h1 {
+    margin-top: 14px;
+    font-size: 1.18rem; font-weight: 700; color: var(--vert-nuit);
+    letter-spacing: .01em;
+}
+
+.login-form { text-align: left; }
+.form-group { margin-bottom: 18px; }
+.form-group label {
+    display: block; font-weight: 600; color: var(--encre);
+    margin-bottom: 7px; font-size: .88rem;
+}
+.form-group input {
+    width: 100%; padding: 12px 14px;
+    background: #fff; border: 1px solid var(--bordure);
+    border-radius: 10px; font-size: .96rem; font-family: inherit;
+    color: var(--encre); transition: border-color .18s, box-shadow .18s;
+}
+.form-group input::placeholder { color: var(--gris-clair); }
+.form-group input:focus {
+    outline: none; border-color: var(--vert);
+    box-shadow: 0 0 0 4px rgba(0, 168, 89, .13);
+}
+
+.form-group.password-group { position: relative; }
+.password-toggle {
+    position: absolute; right: 10px; top: 31px;
+    background: none; border: none; color: var(--gris-clair);
+    cursor: pointer; font-size: 1rem; padding: 8px;
+}
+.password-toggle:hover { color: var(--vert-fonce); }
+
+.message-champ {
+    display: none; margin: -6px 0 16px;
+    font-size: .82rem; color: var(--vert-nuit);
+    background: var(--vert-brume); border-radius: 8px; padding: 10px 12px;
+    line-height: 1.4;
+}
+.message-champ.visible { display: block; }
+
+.btn-login {
+    width: 100%; padding: 13px; margin-top: 4px;
+    background: var(--vert); color: #fff;
+    border: none; border-radius: 10px;
+    font-family: inherit; font-size: .98rem; font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 168, 89, .25);
+    transition: background .18s, transform .18s, box-shadow .18s;
+}
+.btn-login:hover {
+    background: var(--vert-fonce); transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 168, 89, .3);
+}
+.btn-login:disabled { opacity: .6; cursor: not-allowed; transform: none; }

@@ -1,0 +1,74 @@
+/* ==========================================================================
+   Adaptations aux petits écrans et aux écrans peu hauts.
+   ========================================================================== */
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 1024px) {
+    :root {
+        --sidebar-w: 150px;
+        --bulle: clamp(48px, 6.6vh, 68px);
+        --bulle-gap: clamp(10px, 2vh, 22px);
+    }
+    .chat-panel { grid-template-columns: 250px 1fr; }
+}
+
+@media (max-width: 768px) {
+    .login-container { grid-template-columns: 1fr; }
+    .login-left { display: none; }
+
+    .admin-container { flex-direction: column; }
+
+    .admin-sidebar-new {
+        width: 100%; height: 84px; flex-direction: row;
+        padding: 0 16px; align-items: center;
+    }
+    .sidebar-logo-section {
+        margin-bottom: 0; padding-bottom: 0; width: auto;
+        border-bottom: none; border-right: 1px solid rgba(255, 255, 255, .16);
+        padding-right: 16px; margin-right: 16px;
+    }
+    .sidebar-logo-icon { width: 116px; }
+    .sidebar-nav-tabs {
+        flex-direction: row; gap: 12px; padding: 0;
+        margin-bottom: 0; overflow-x: auto; overflow-y: visible;
+    }
+    /* En bandeau horizontal, les marges auto désaxeraient les bulles. */
+    .sidebar-nav-tabs > :first-child { margin-top: 0; }
+    .sidebar-nav-tabs > :last-child  { margin-bottom: 0; }
+    .sidebar-tab-btn { width: 50px; height: 50px; font-size: 1.15rem; }
+    .sidebar-logout-btn {
+        width: 50px; height: 50px; padding: 0;
+        margin: 0 0 0 12px; justify-content: center;
+    }
+    .sidebar-logout-btn span { display: none; }
+
+    .admin-header-new { flex-direction: column; gap: 12px; align-items: flex-start; }
+    .admin-tab-pane { padding: 22px 14px; }
+
+    .metrics-vertical-grid { width: 100%; }
+    .form-grid-admin { grid-template-columns: 1fr; }
+    .kanban-container { grid-template-columns: 1fr 1fr; }
+    .user-grid { grid-template-columns: 1fr; }
+
+    /* Une seule colonne : la liste des conversations passe en bandeau
+       défilant au-dessus du fil. */
+    .chat-panel {
+        min-height: 420px;
+        border-radius: var(--rayon);
+        grid-template-columns: 1fr; grid-template-rows: auto 1fr;
+    }
+    .chat-liste { border-right: none; border-bottom: 1px solid var(--bordure); }
+    .chat-liste-items { max-height: 148px; }
+    .chat-row { max-width: 88%; }
+
+    /* L'encadré du ticket devient compact : sur un téléphone, il
+       mangeait toute la hauteur et chassait la zone de saisie. */
+    .chat-ticket-card { max-height: 30%; padding: 11px 14px; }
+    .chat-ticket-top { margin-bottom: 8px; }
+    .chat-ticket-titre { font-size: .9rem; }
+    .chat-person { padding: 6px 11px; font-size: .78rem; }
+    .chat-ticket-people { gap: 6px; }
+    .chat-composer { padding: 10px 12px; }
+    .chat-composer textarea { padding: 10px 13px; }
+    .chat-actions { opacity: 1; pointer-events: auto; left: -70px; }
+}

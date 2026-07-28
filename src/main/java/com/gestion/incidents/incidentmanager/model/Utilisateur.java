@@ -41,6 +41,15 @@ public class Utilisateur {
     private String departement;
 
     /**
+     * Compte protégé. Un super-administrateur ne peut être ni modifié, ni
+     * supprimé, ni désactivé depuis l'application, quel que soit l'auteur de
+     * la demande. C'est le garde-fou qui garantit qu'il restera toujours un
+     * accès d'administration opérationnel, même après une fausse manœuvre.
+     */
+    @Column(name = "super_admin")
+    private Boolean superAdmin = Boolean.FALSE;
+
+    /**
      * Un compte inactif est conservé pour l'historique mais ne peut plus se connecter.
      *
      * Colonne volontairement nullable et de type Boolean : déclarée NOT NULL,
@@ -55,13 +64,6 @@ public class Utilisateur {
     @Column(name = "date_creation")
     private LocalDateTime dateCreation;
 
-    /**
-     * Dernière ouverture de l'onglet Messagerie. Sert de repère pour compter
-     * les messages non lus. Stocké en base plutôt que dans le navigateur :
-     * la pastille reste juste quand on change de poste.
-     */
-    @Column(name = "derniere_visite_messagerie")
-    private LocalDateTime derniereVisiteMessagerie;
 
     // Constructeurs
     public Utilisateur() {
@@ -145,6 +147,10 @@ public class Utilisateur {
 
     public void setDepartement(String departement) { this.departement = departement; }
 
+    public boolean isSuperAdmin() { return superAdmin != null && superAdmin; }
+
+    public void setSuperAdmin(boolean superAdmin) { this.superAdmin = superAdmin; }
+
     public boolean isActif() { return actif == null || actif; }
 
     public void setActif(boolean actif) { this.actif = actif; }
@@ -153,13 +159,6 @@ public class Utilisateur {
 
     public void setDateCreation(LocalDateTime dateCreation) { this.dateCreation = dateCreation; }
 
-    public LocalDateTime getDerniereVisiteMessagerie() {
-        return derniereVisiteMessagerie;
-    }
-
-    public void setDerniereVisiteMessagerie(LocalDateTime derniereVisiteMessagerie) {
-        this.derniereVisiteMessagerie = derniereVisiteMessagerie;
-    }
 
     public String getNomComplet() {
         return prenom + " " + nom;

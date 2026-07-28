@@ -1,0 +1,168 @@
+<!-- ============ MODAL : CRÉER OU MODIFIER UN COMPTE ============ -->
+<div class="modal-fond" id="modalUtilisateur" role="dialog" aria-modal="true">
+    <div class="modal-boite">
+        <div class="modal-entete">
+            <div class="modal-titre">
+                <span class="etiquette-modale"><i class="fas fa-user-pen"></i> Compte</span>
+                <h3 id="modalUtilisateurTitre">Modifier un compte</h3>
+            </div>
+            <button type="button" class="modal-fermer" data-fermer="modalUtilisateur" aria-label="Fermer">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form id="formUtilisateur">
+            <div class="modal-corps">
+                <div class="form-grid-admin">
+                    <div class="form-group-admin">
+                        <label for="editNom">Nom</label>
+                        <input type="text" id="editNom" required>
+                    </div>
+                    <div class="form-group-admin">
+                        <label for="editPrenom">Prénom</label>
+                        <input type="text" id="editPrenom" required>
+                    </div>
+                    <div class="form-group-admin">
+                        <label for="editEmail">Adresse e-mail</label>
+                        <input type="email" id="editEmail" placeholder="prenom.nom@kipropha.tn" required>
+                    </div>
+                    <div class="form-group-admin">
+                        <label for="editDepartement">Département</label>
+                        <input type="text" id="editDepartement" placeholder="Ressources humaines">
+                    </div>
+                    <div class="form-group-admin">
+                        <label for="editRole">Rôle</label>
+                        <select id="editRole">
+                            <option value="UTILISATEUR">Utilisateur</option>
+                            <option value="SUPPORT_IT">Support IT</option>
+                            <option value="ADMINISTRATEUR">Administrateur</option>
+                        </select>
+                    </div>
+                    <div class="form-group-admin" id="champMotDePasse">
+                        <label for="editMotDePasse">Mot de passe</label>
+                        <input type="password" id="editMotDePasse" minlength="8" autocomplete="new-password">
+                        <div class="jauge" id="jaugeCreation">
+                            <div class="jauge-piste"><div class="jauge-barre" id="jaugeCreationBarre"></div></div>
+                            <div class="jauge-legende">
+                                <span>Robustesse</span>
+                                <span id="jaugeCreationTexte">—</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-pied">
+                <div class="modal-boutons">
+                    <button type="button" class="btn-annuler" data-fermer="modalUtilisateur">
+                        <i class="fas fa-xmark"></i> Annuler
+                    </button>
+                    <button type="submit" class="btn-valider">
+                        <i class="fas fa-check"></i> Valider
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ============ MODAL : CONFIRMER UNE SUPPRESSION ============ -->
+<div class="modal-fond" id="modalSuppression" role="dialog" aria-modal="true">
+    <div class="modal-boite" style="width:min(520px,100%);">
+        <div class="modal-entete">
+            <div class="modal-titre">
+                <span class="etiquette-modale danger">
+                    <i class="fas fa-triangle-exclamation"></i> Suppression
+                </span>
+                <h3>Confirmer la suppression</h3>
+            </div>
+            <button type="button" class="modal-fermer" data-fermer="modalSuppression" aria-label="Fermer">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="modal-corps">
+            <p class="modal-etape" id="texteSuppression"></p>
+            <p class="modal-etape">Cette action est irréversible.</p>
+        </div>
+
+        <div class="modal-pied">
+            <div class="modal-boutons">
+                <button type="button" class="btn-annuler" data-fermer="modalSuppression">
+                    <i class="fas fa-xmark"></i> Annuler
+                </button>
+                <button type="button" class="btn-valider danger" id="btnValiderSuppression">
+                    <i class="fas fa-check"></i> Valider
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============ MODAL : NOUVEAU TICKET ============ -->
+<div class="modal-fond" id="modalNouveauTicket" role="dialog" aria-modal="true">
+    <div class="modal-boite">
+        <div class="modal-entete">
+            <div class="modal-titre">
+                <span class="etiquette-modale"><i class="fas fa-plus"></i> Nouvelle demande</span>
+                <h3>Signaler un incident</h3>
+            </div>
+            <button type="button" class="modal-fermer" id="fermerNouveauTicket" aria-label="Fermer">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form id="createTicketForm">
+            <div class="modal-corps">
+                <div class="modal-bloc">
+                    <h4>Étape 1 — De quoi s'agit-il ?</h4>
+                    <p class="modal-etape">Le choix de la catégorie oriente votre demande vers le bon technicien.</p>
+                    <div class="form-grid-admin">
+                        <div class="form-group-admin">
+                            <label for="ticketCategory">Catégorie</label>
+                            <select id="ticketCategory" required>
+                                <option value="">Sélectionner…</option>
+                                <option value="MATERIEL">Matériel</option>
+                                <option value="LOGICIEL">Logiciel</option>
+                                <option value="RESEAU">Réseau</option>
+                                <option value="IMPRIMANTE">Imprimante</option>
+                                <option value="AUTRE">Autre</option>
+                            </select>
+                        </div>
+                        <div class="form-group-admin">
+                            <label for="ticketPriority">Degré d'urgence</label>
+                            <select id="ticketPriority" required>
+                                <option value="">Sélectionner…</option>
+                                <option value="FAIBLE">Faible — cela peut attendre</option>
+                                <option value="MOYENNE">Moyenne — gênant</option>
+                                <option value="ELEVEE">Élevée — je suis bloqué</option>
+                                <option value="CRITIQUE">Critique — activité à l'arrêt</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-bloc">
+                    <h4>Étape 2 — Décrivez le problème</h4>
+                    <p class="modal-etape">Plus la description est précise, plus la résolution sera rapide.</p>
+                    <div class="form-group-admin" style="margin-bottom:16px;">
+                        <label for="ticketTitle">Résumé en une phrase</label>
+                        <input type="text" id="ticketTitle" required
+                               placeholder="Ex. : l'imprimante du 2e étage refuse d'imprimer">
+                    </div>
+                    <div class="form-group-admin">
+                        <label for="ticketDescription">Description détaillée</label>
+                        <textarea id="ticketDescription" required
+                                  placeholder="Depuis quand ? Quel message d'erreur ? Qu'avez-vous déjà essayé ?"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-pied">
+                <button type="submit" class="btn-admin-primary">
+                    <i class="fas fa-paper-plane"></i> Envoyer ma demande
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
