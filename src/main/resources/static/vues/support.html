@@ -10,20 +10,14 @@
                 </div>
             </div>
 
-            <div class="sidebar-identite">
-                <i class="fas fa-headset"></i>
-                <span class="role">Support IT</span>
-                <span class="nom" id="supportIdentite">—</span>
-            </div>
-
             <nav class="sidebar-nav-tabs">
-                <button class="sidebar-tab-btn active" data-pane="ouverts" title="Tickets ouverts">
-                    <i class="fas fa-inbox"></i>
-                    <span class="libelle">Tickets ouverts</span>
+                <button class="sidebar-tab-btn active" data-pane="tickets" title="Gestion des tickets">
+                    <i class="fas fa-ticket"></i>
+                    <span class="libelle">Gestion des tickets</span>
                 </button>
-                <button class="sidebar-tab-btn" data-pane="dashboard" title="Tableau de bord">
+                <button class="sidebar-tab-btn" data-pane="dashboard" title="Suivi de mes tickets">
                     <i class="fas fa-chart-line"></i>
-                    <span class="libelle">Tableau de bord</span>
+                    <span class="libelle">Suivi de mes tickets</span>
                 </button>
             </nav>
 
@@ -53,19 +47,31 @@
 
             <div class="admin-tabs-wrapper">
 
-                <section class="admin-tab-pane active" data-pane="ouverts">
+                <section class="admin-tab-pane active" data-pane="tickets">
                     <div class="zone-centree">
                         <div class="outils-table">
-                            <input type="search" id="rechercheOuverts" class="champ-recherche"
+                            <select id="perimetreTickets" class="filtre-select">
+                                <option value="tous">Tous les tickets</option>
+                                <option value="libres">À prendre en charge</option>
+                                <option value="miens">Les miens</option>
+                            </select>
+                            <input type="search" id="rechercheTicketsSupport" class="champ-recherche"
                                    placeholder="Rechercher un numéro, un titre ou un demandeur…">
-                            <select id="filtreOuvertsPriorite" class="filtre-select">
+                            <select id="filtreSupportStatut" class="filtre-select">
+                                <option value="">Tous les statuts</option>
+                                <option value="NOUVEAU">Nouveau</option>
+                                <option value="EN_COURS">En cours</option>
+                                <option value="RESOLU">Résolu</option>
+                                <option value="FERME">Fermé</option>
+                            </select>
+                            <select id="filtreSupportPriorite" class="filtre-select">
                                 <option value="">Toutes les priorités</option>
                                 <option value="CRITIQUE">Critique</option>
                                 <option value="ELEVEE">Élevée</option>
                                 <option value="MOYENNE">Moyenne</option>
                                 <option value="FAIBLE">Faible</option>
                             </select>
-                            <select id="filtreOuvertsCategorie" class="filtre-select">
+                            <select id="filtreSupportCategorie" class="filtre-select">
                                 <option value="">Toutes les catégories</option>
                                 <option value="MATERIEL">Matériel</option>
                                 <option value="LOGICIEL">Logiciel</option>
@@ -73,7 +79,13 @@
                                 <option value="IMPRIMANTE">Imprimante</option>
                                 <option value="AUTRE">Autre</option>
                             </select>
-                            <span class="compte-resultats" id="compteOuverts"></span>
+                            <div class="filtre-dates">
+                                <label for="dateSupportDebut">Du</label>
+                                <input type="date" id="dateSupportDebut">
+                                <label for="dateSupportFin">au</label>
+                                <input type="date" id="dateSupportFin">
+                            </div>
+                            <span class="compte-resultats" id="compteTicketsSupport"></span>
                         </div>
 
                         <div class="table-defilante">
@@ -81,12 +93,13 @@
                                 <thead>
                                 <tr>
                                     <th>Identifiant</th><th>Titre</th><th>Catégorie</th>
-                                    <th>Priorité</th><th>Demandeur</th><th>Ouvert le</th>
+                                    <th>Statut</th><th>Priorité</th><th>Demandeur</th>
+                                    <th>Pris en charge par</th>
                                     <th style="text-align:center;">Action</th>
                                 </tr>
                                 </thead>
-                                <tbody id="ouvertsTableBody">
-                                <tr><td colspan="7" class="etat-vide">Chargement…</td></tr>
+                                <tbody id="supportTableBody">
+                                <tr><td colspan="8" class="etat-vide">Chargement…</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -95,44 +108,70 @@
 
                 <section class="admin-tab-pane" data-pane="dashboard">
                     <div class="zone-centree">
+                        <div class="tableau-bord" data-bord id="bordSupport">
+                            <div class="grille-cartes" data-role="cartes"></div>
 
-                        <div class="grille-kpi" id="grilleKpiSupport"></div>
+                            <div class="zone-dynamique">
+                                <div class="zone-tete">
+                                    <h3 data-role="titre"></h3>
+                                    <button type="button" class="btn-retour-tableau" data-role="retour" hidden>
+                                        <i class="fas fa-arrow-left"></i> Revenir au tableau
+                                    </button>
+                                </div>
 
-                        <div class="section-bloc">
-                            <h3><i class="fas fa-folder-open"></i> Historique de mes tickets</h3>
+                                <div data-role="tableau">
+                                    <div class="outils-table">
+                                        <input type="search" id="rechercheMesInterventions" class="champ-recherche"
+                                               placeholder="Rechercher un numéro ou un titre…">
+                                        <select id="filtreMesInterventionsStatut" class="filtre-select">
+                                            <option value="">Tous les statuts</option>
+                                            <option value="NOUVEAU">Nouveau</option>
+                                            <option value="EN_COURS">En cours</option>
+                                            <option value="RESOLU">Résolu</option>
+                                            <option value="FERME">Fermé</option>
+                                        </select>
+                                        <select id="filtreMesInterventionsPriorite" class="filtre-select">
+                                            <option value="">Toutes les priorités</option>
+                                            <option value="CRITIQUE">Critique</option>
+                                            <option value="ELEVEE">Élevée</option>
+                                            <option value="MOYENNE">Moyenne</option>
+                                            <option value="FAIBLE">Faible</option>
+                                        </select>
+                                        <select id="filtreMesInterventionsCategorie" class="filtre-select">
+                                            <option value="">Toutes les catégories</option>
+                                            <option value="MATERIEL">Matériel</option>
+                                            <option value="LOGICIEL">Logiciel</option>
+                                            <option value="RESEAU">Réseau</option>
+                                            <option value="IMPRIMANTE">Imprimante</option>
+                                            <option value="AUTRE">Autre</option>
+                                        </select>
+                                        <div class="filtre-dates">
+                                            <label for="dateMesInterventionsDebut">Du</label>
+                                            <input type="date" id="dateMesInterventionsDebut">
+                                            <label for="dateMesInterventionsFin">au</label>
+                                            <input type="date" id="dateMesInterventionsFin">
+                                        </div>
+                                        <span class="compte-resultats" id="compteMesInterventions"></span>
+                                    </div>
 
-                            <div class="outils-table">
-                                <input type="search" id="rechercheAssignes" class="champ-recherche"
-                                       placeholder="Rechercher un numéro, un titre ou un demandeur…">
-                                <select id="filtreAssignesStatut" class="filtre-select">
-                                    <option value="">Tous les statuts</option>
-                                    <option value="NOUVEAU">Nouveau</option>
-                                    <option value="EN_COURS">En cours</option>
-                                    <option value="RESOLU">Résolu</option>
-                                    <option value="FERME">Fermé</option>
-                                </select>
-                                <select id="filtreAssignesPriorite" class="filtre-select">
-                                    <option value="">Toutes les priorités</option>
-                                    <option value="CRITIQUE">Critique</option>
-                                    <option value="ELEVEE">Élevée</option>
-                                    <option value="MOYENNE">Moyenne</option>
-                                    <option value="FAIBLE">Faible</option>
-                                </select>
-                                <span class="compte-resultats" id="compteAssignes"></span>
-                            </div>
+                                    <div class="table-defilante">
+                                        <table class="admin-data-table">
+                                            <thead>
+                                            <tr>
+                                                <th>Identifiant</th><th>Titre</th><th>Catégorie</th>
+                                                <th>Statut</th><th>Priorité</th><th>Ouvert le</th>
+                                                <th>Dernier commentaire</th>
+                                                <th style="text-align:center;">Ajout de commentaire</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody id="mesInterventionsTableBody">
+                                            <tr><td colspan="8" class="etat-vide">Chargement…</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
 
-                            <div class="table-defilante">
-                                <table class="admin-data-table">
-                                    <thead>
-                                    <tr>
-                                        <th>Identifiant</th><th>Titre</th><th>Catégorie</th>
-                                        <th>Statut</th><th>Priorité</th><th>Ouvert le</th><th>Clos le</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody id="assignesTableBody">
-                                    <tr><td colspan="7" class="etat-vide">Chargement…</td></tr>
-                                    </tbody>
-                                </table>
+                                <div data-role="graphique" class="graphique" hidden></div>
                             </div>
                         </div>
                     </div>

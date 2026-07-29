@@ -10,7 +10,9 @@
    ============================================================ */
 
 /* Largeur maximale commune à tous les tableaux et listes */
-.zone-centree { width: 100%; max-width: 1024px; margin: 0 auto; }
+/* Les tables de tickets comptent jusqu'à huit colonnes : 1024 px les
+   étouffaient et forçaient un défilement horizontal permanent. */
+.zone-centree { width: 100%; max-width: 1600px; margin: 0 auto; }
 
 /* Filigrane : logo unique, centré, incliné à 45°, très estompé */
 .filigrane-central {
@@ -363,4 +365,35 @@
 
 @media (max-width: 768px) {
     .barre-filtres { grid-template-columns: 1fr; }
+}
+
+/* ----------------------------------------------------------------------
+   Actions sur un commentaire du fil.
+   Les deux icônes n'apparaissent qu'au double-clic sur son propre message :
+   un fil criblé de boutons se lit mal.
+   ---------------------------------------------------------------------- */
+.historique-ligne { position: relative; }
+.historique-ligne.modifiable { cursor: pointer; }
+.historique-ligne.modifiable:hover { background: var(--vert-voile); }
+
+.historique-actions {
+    display: none;
+    position: absolute; top: 8px; right: 10px;
+    gap: 6px;
+}
+.historique-ligne.actions-visibles .historique-actions { display: flex; }
+
+.icone-action {
+    width: 30px; height: 30px; border-radius: 7px;
+    border: 1px solid var(--bordure); background: #fff;
+    color: var(--vert-fonce); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .8rem; transition: all .18s;
+}
+.icone-action:hover { background: var(--vert-brume); border-color: var(--vert); }
+.icone-action.danger { color: var(--rouge); }
+.icone-action.danger:hover { background: var(--rouge-voile); border-color: var(--rouge); }
+
+.mention-modifie {
+    margin-left: 6px; font-size: .72rem; font-style: italic; color: var(--gris-clair);
 }

@@ -17,14 +17,19 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
 
     List<AuditLog> findByTypeAction(String typeAction);
 
-    List<AuditLog> findByEntiteAffectee(String entiteAffectee);
-
-    @Query("SELECT a FROM AuditLog a ORDER BY a.dateAction DESC")
+    @Query("SELECT a FROM AuditLog a LEFT JOIN FETCH a.utilisateur ORDER BY a.dateAction DESC")
     List<AuditLog> findAllOrderByDateDesc();
 
-    @Query("SELECT a FROM AuditLog a WHERE a.dateAction BETWEEN :debut AND :fin ORDER BY a.dateAction DESC")
-    List<AuditLog> findByDateRange(@Param("debut") LocalDateTime debut, @Param("fin") LocalDateTime fin);
-
-    @Query("SELECT a FROM AuditLog a WHERE a.utilisateur = :utilisateur ORDER BY a.dateAction DESC LIMIT 50")
-    List<AuditLog> findRecentByUser(@Param("utilisateur") Utilisateur utilisateur);
+    /**
+     * Historique des connexions, réussies et refusées, sur une période.
+     *
+     * Le JOIN FETCH est en LEFT : une tentative sur une adresse inconnue n'a
+     * pas de compte associé, un INNER JOIN la ferait disparaître du résultat.
+     */
+    @Query("SELECT a FROM AuditLog a LEFT JOIN FETCH a.utilisateur "
+            + "WHERE a.typeAction IN ('CONNEXION', 'CONNEXION_ECHOUEE') "
+            + "AND a.dateAction BETWEEN :debut AND :fin "
+            + "ORDER BY a.dateAction DESC")
+    List<AuditLog> findConnexions(@Param("debut") LocalDateTime debut,
+                                  @Param("fin") LocalDateTime fin);
 }

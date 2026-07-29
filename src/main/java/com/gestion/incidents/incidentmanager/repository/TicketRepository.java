@@ -59,6 +59,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     List<Ticket> findParPeriode(@Param("debut") java.time.LocalDateTime debut,
                                 @Param("fin") java.time.LocalDateTime fin);
 
+    long countByUtilisateur(Utilisateur utilisateur);
+
     long countByStatut(Statut statut);
     long countByCategorie(Categorie categorie);
     long countBySupportIt(Utilisateur supportIt);

@@ -18,6 +18,10 @@
                     <i class="fas fa-chart-line"></i>
                     <span class="libelle">Tableau de bord</span>
                 </button>
+                <button class="sidebar-tab-btn" data-tab="connexions" title="Historique de connexion">
+                    <i class="fas fa-right-to-bracket"></i>
+                    <span class="libelle">Historique de connexion</span>
+                </button>
             </nav>
 
             <button class="sidebar-logout-btn" onclick="logout()" title="Se déconnecter">
@@ -32,7 +36,7 @@
             </div>
 
             <header class="admin-header-new">
-                <h1 id="adminPageTitle"><i class="fas fa-users"></i> Gestion utilisateur</h1>
+                <h1 id="adminPageTitle"><i class="fas fa-users"></i> Gestion des utilisateurs</h1>
                 <div class="admin-user-info">
                     <div class="admin-profile-badge">
                         <span class="avatar-profil" id="adminAvatar">—</span>
@@ -50,11 +54,6 @@
                 <section class="admin-tab-pane active" data-tab="utilisateurs">
                     <div class="zone-centree">
 
-                        <div class="section-bloc" id="blocDemandes" style="display:none;">
-                            <h3><i class="fas fa-life-ring"></i> Demandes d'accès</h3>
-                            <div id="listeDemandes" class="liste-defilante"></div>
-                        </div>
-
                         <div class="outils-table">
                             <button type="button" class="btn-valider" id="btnAjoutAdmin">
                                 <i class="fas fa-plus"></i> Ajouter
@@ -64,7 +63,7 @@
                             <select id="filtreRole" class="filtre-select">
                                 <option value="">Tous les rôles</option>
                                 <option value="ADMINISTRATEUR">Administrateurs</option>
-                                <option value="SUPPORT_IT">Agents support</option>
+                                <option value="SUPPORT_IT">supportIT</option>
                                 <option value="UTILISATEUR">Utilisateurs</option>
                             </select>
                             <select id="filtreDepartement" class="filtre-select">
@@ -98,91 +97,116 @@
                 <section class="admin-tab-pane" data-tab="tableau-bord">
                     <div class="zone-centree">
 
-                        <div class="section-bloc">
-                            <h3><i class="fas fa-ticket"></i> Tickets</h3>
+                        <div class="tableau-bord" data-bord id="bordAdmin">
+                            <div class="grille-cartes" data-role="cartes"></div>
 
-                            <div class="outils-table">
-                                <input type="search" id="rechercheTickets" class="champ-recherche"
-                                       placeholder="Rechercher un numéro, un titre ou un demandeur…">
-                                <select id="filtreTicketStatut" class="filtre-select">
-                                    <option value="">Tous les statuts</option>
-                                    <option value="NOUVEAU">Nouveau</option>
-                                    <option value="EN_COURS">En cours</option>
-                                    <option value="RESOLU">Résolu</option>
-                                    <option value="FERME">Fermé</option>
-                                </select>
-                                <select id="filtreTicketPriorite" class="filtre-select">
-                                    <option value="">Toutes les priorités</option>
-                                    <option value="CRITIQUE">Critique</option>
-                                    <option value="ELEVEE">Élevée</option>
-                                    <option value="MOYENNE">Moyenne</option>
-                                    <option value="FAIBLE">Faible</option>
-                                </select>
-                                <select id="filtreTicketCategorie" class="filtre-select">
-                                    <option value="">Toutes les catégories</option>
-                                    <option value="MATERIEL">Matériel</option>
-                                    <option value="LOGICIEL">Logiciel</option>
-                                    <option value="RESEAU">Réseau</option>
-                                    <option value="IMPRIMANTE">Imprimante</option>
-                                    <option value="AUTRE">Autre</option>
-                                </select>
-                                <span class="compte-resultats" id="compteTickets"></span>
-                            </div>
+                            <div class="zone-dynamique">
+                                <div class="zone-tete">
+                                    <h3 data-role="titre"></h3>
+                                    <button type="button" class="btn-retour-tableau" data-role="retour" hidden>
+                                        <i class="fas fa-arrow-left"></i> Revenir au tableau
+                                    </button>
+                                </div>
 
-                            <div class="table-defilante">
-                                <table class="admin-data-table">
-                                    <thead>
-                                    <tr>
-                                        <th>Identifiant</th><th>Catégorie</th><th>Statut</th>
-                                        <th>Priorité</th><th>Date de création</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody id="ticketsTableBody">
-                                    <tr><td colspan="5" class="etat-vide">Chargement…</td></tr>
-                                    </tbody>
-                                </table>
+                                <div data-role="tableau">
+                                    <div class="outils-table">
+                                        <input type="search" id="rechercheTickets" class="champ-recherche"
+                                               placeholder="Rechercher un numéro, un titre ou un demandeur…">
+                                        <select id="filtreTicketStatut" class="filtre-select">
+                                            <option value="">Tous les statuts</option>
+                                            <option value="NOUVEAU">Nouveau</option>
+                                            <option value="EN_COURS">En cours</option>
+                                            <option value="RESOLU">Résolu</option>
+                                            <option value="FERME">Fermé</option>
+                                        </select>
+                                        <select id="filtreTicketPriorite" class="filtre-select">
+                                            <option value="">Toutes les priorités</option>
+                                            <option value="CRITIQUE">Critique</option>
+                                            <option value="ELEVEE">Élevée</option>
+                                            <option value="MOYENNE">Moyenne</option>
+                                            <option value="FAIBLE">Faible</option>
+                                        </select>
+                                        <select id="filtreTicketCategorie" class="filtre-select">
+                                            <option value="">Toutes les catégories</option>
+                                            <option value="MATERIEL">Matériel</option>
+                                            <option value="LOGICIEL">Logiciel</option>
+                                            <option value="RESEAU">Réseau</option>
+                                            <option value="IMPRIMANTE">Imprimante</option>
+                                            <option value="AUTRE">Autre</option>
+                                        </select>
+                                        <div class="filtre-dates">
+                                            <label for="dateTicketsDebut">Du</label>
+                                            <input type="date" id="dateTicketsDebut">
+                                            <label for="dateTicketsFin">au</label>
+                                            <input type="date" id="dateTicketsFin">
+                                        </div>
+                                        <span class="compte-resultats" id="compteTickets"></span>
+                                    </div>
+
+                                    <div class="table-defilante">
+                                        <table class="admin-data-table">
+                                            <thead>
+                                            <tr>
+                                                <th>Identifiant</th><th>Catégorie</th><th>Statut</th>
+                                                <th>Priorité</th><th>Date de création</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody id="ticketsTableBody">
+                                            <tr><td colspan="5" class="etat-vide">Chargement…</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <div data-role="graphique" class="graphique" hidden></div>
                             </div>
                         </div>
 
-                        <div class="section-bloc">
-                            <h3><i class="fas fa-gauge-high"></i> Performance des agents de support</h3>
+                    </div>
+                </section>
 
-                            <div class="periode-kpi">
-                                <div>
-                                    <label for="kpiDebut">Du</label>
-                                    <input type="date" id="kpiDebut">
-                                </div>
-                                <div>
-                                    <label for="kpiFin">Au</label>
-                                    <input type="date" id="kpiFin">
-                                </div>
-                                <button type="button" class="btn-valider" id="btnKpi">
-                                    <i class="fas fa-rotate"></i> Actualiser
-                                </button>
+                <!-- 3. HISTORIQUE DE CONNEXION -->
+                <section class="admin-tab-pane" data-tab="connexions">
+                    <div class="zone-centree">
+                        <div class="outils-table">
+                            <input type="search" id="rechercheConnexions" class="champ-recherche"
+                                   placeholder="Rechercher un nom ou une adresse…">
+                            <select id="filtreConnexionsResultat" class="filtre-select">
+                                <option value="">Toutes les tentatives</option>
+                                <option value="reussite">Réussites</option>
+                                <option value="echec">Échecs</option>
+                            </select>
+                            <select id="filtreConnexionsRole" class="filtre-select">
+                                <option value="">Tous les rôles</option>
+                                <option value="ADMINISTRATEUR">Administrateurs</option>
+                                <option value="SUPPORT_IT">supportIT</option>
+                                <option value="UTILISATEUR">Utilisateurs</option>
+                            </select>
+                            <div class="filtre-dates">
+                                <label for="dateConnexionsDebut">Du</label>
+                                <input type="date" id="dateConnexionsDebut">
+                                <label for="dateConnexionsFin">au</label>
+                                <input type="date" id="dateConnexionsFin">
                             </div>
+                            <span class="compte-resultats" id="compteConnexions"></span>
+                        </div>
 
-                            <div class="grille-kpi" id="grilleKpi"></div>
-
-                            <div class="table-defilante">
-                                <table class="admin-data-table">
-                                    <thead>
-                                    <tr>
-                                        <th>Agent</th>
-                                        <th style="text-align:center;">Assignés</th>
-                                        <th style="text-align:center;">Résolus</th>
-                                        <th style="text-align:center;">En cours</th>
-                                        <th style="text-align:center;">Délai moyen</th>
-                                        <th style="text-align:center;">Taux de résolution</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody id="kpiTableBody">
-                                    <tr><td colspan="6" class="etat-vide">Sélectionnez une période.</td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                        <div class="table-defilante">
+                            <table class="admin-data-table">
+                                <thead>
+                                <tr>
+                                    <th>Date</th><th>Utilisateur</th><th>Adresse saisie</th>
+                                    <th>Rôle</th><th>Résultat</th><th>Motif du refus</th>
+                                </tr>
+                                </thead>
+                                <tbody id="connexionsTableBody">
+                                <tr><td colspan="6" class="etat-vide">Chargement…</td></tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </section>
+
             </div>
         </main>
     </div>

@@ -8,12 +8,54 @@
    ============================================================ */
 
 /* Bandeau d'outils au-dessus de chaque table */
+/*
+ * Barre d'outils en grille plutôt qu'en ligne souple.
+ *
+ * Avec flex-wrap, chaque champ prenait la largeur de son contenu : les
+ * listes déroulantes se décalaient d'une vue à l'autre selon la longueur
+ * de leurs libellés. La grille impose des colonnes de largeur égale, si
+ * bien que les filtres tombent au même endroit dans les trois espaces.
+ */
+/*
+ * Barre d'outils : tous les filtres sur une seule ligne, de hauteur égale.
+ *
+ * Chaque contrôle reçoit la même part de l'espace disponible, avec une base
+ * de 165 px. Sur les 1600 px de la zone, huit filtres tiennent donc côte à
+ * côte ; en dessous, ils se replient d'eux-mêmes. La grille précédente
+ * plaçait le compteur en dernière colonne, ce qui laissait un trou et
+ * renvoyait le bloc de dates à la ligne suivante.
+ */
 .outils-table {
-    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
-    margin-bottom: 16px;
+    display: flex; flex-wrap: wrap; align-items: stretch; gap: 12px;
+    margin-bottom: 18px;
+}
+
+/* Les contrôles se partagent la largeur à parts égales. */
+.outils-table > .champ-recherche,
+.outils-table > .filtre-select,
+.outils-table > .filtre-dates,
+.outils-table > button {
+    flex: 0 1 165px; min-width: 0;
+}
+
+/* La recherche est le champ le plus sollicité : elle pèse double. */
+.outils-table > .champ-recherche { flex: 2 1 230px; }
+
+/* Le bloc de dates loge deux champs : il lui faut la place de deux filtres. */
+.outils-table > .filtre-dates { flex: 2 1 260px; }
+
+/* Le compteur ne s'étire pas et se cale à droite. */
+.outils-table > .compte-resultats {
+    flex: 0 0 auto; margin-left: auto; align-self: center;
+}
+
+@media (max-width: 900px) {
+    .outils-table > .champ-recherche,
+    .outils-table > .filtre-dates { flex: 1 1 100%; }
+    .outils-table > .compte-resultats { margin-left: 0; }
 }
 .champ-recherche {
-    flex: 1 1 240px; min-width: 200px;
+    width: 100%; min-width: 0;
     padding: 10px 15px; border: 1px solid var(--bordure);
     border-radius: 999px; font-family: inherit; font-size: .9rem;
     background: #fff; transition: all .2s;
@@ -23,7 +65,7 @@
     box-shadow: 0 0 0 3px rgba(0, 168, 89, .12);
 }
 .filtre-select {
-    padding: 10px 14px; border: 1px solid var(--bordure);
+    width: 100%; padding: 10px 14px; border: 1px solid var(--bordure);
     border-radius: 999px; font-family: inherit; font-size: .88rem;
     background: #fff; color: var(--encre); cursor: pointer; transition: all .2s;
 }
@@ -102,31 +144,6 @@
 .carte-kpi strong { font-size: 1.7rem; font-weight: 800; color: var(--vert); line-height: 1; }
 .carte-kpi small { display: block; margin-top: 5px; font-size: .76rem; color: var(--gris-clair); }
 
-.periode-kpi {
-    display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin-bottom: 18px;
-}
-.periode-kpi label {
-    display: block; font-size: .78rem; font-weight: 600;
-    color: var(--gris); margin-bottom: 5px;
-}
-.periode-kpi input[type="date"] {
-    padding: 9px 13px; border: 1px solid var(--bordure);
-    border-radius: 8px; font-family: inherit; font-size: .88rem;
-}
-.periode-kpi input[type="date"]:focus {
-    outline: none; border-color: var(--vert);
-    box-shadow: 0 0 0 3px rgba(0, 168, 89, .12);
-}
-
-.barre-taux {
-    height: 8px; border-radius: 999px; background: #EDF1F4;
-    overflow: hidden; min-width: 90px;
-}
-.barre-taux span {
-    display: block; height: 100%; border-radius: 999px;
-    background: linear-gradient(90deg, var(--vert) 0%, var(--vert-fonce) 100%);
-}
-
 .section-bloc {
     background: #fff; border-radius: var(--rayon);
     padding: 22px; box-shadow: var(--ombre); margin-bottom: 26px;
@@ -182,4 +199,179 @@
     display: inline-flex; align-items: center; justify-content: center;
     margin-left: 6px; width: 22px; height: 22px; border-radius: 50%;
     background: var(--ambre-voile); color: var(--ambre); font-size: .68rem;
+}
+
+/* --------------------------------------------------------------------------
+   Tableau de bord : cartes de sélection et graphiques.
+   Les cartes reprennent l'aspect des cartes d'indicateurs — fond blanc, filet
+   vert à gauche, libellé en petites capitales, chiffre en gros — auxquelles
+   s'ajoutent les états de survol et de sélection.
+   -------------------------------------------------------------------------- */
+/*
+ * Cinq cartes, cinq colonnes de largeur identique.
+ *
+ * « auto-fit » calculait le nombre de colonnes d'après la largeur disponible :
+ * la dernière carte se retrouvait seule sur une seconde ligne dès que la
+ * fenêtre se resserrait. Le nombre étant connu et fixe, autant l'imposer.
+ */
+.grille-cartes {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 14px; margin-bottom: 24px;
+    align-items: stretch;
+}
+
+.carte-choix {
+    background: #fff;
+    border: 1px solid var(--bordure);
+    border-left: 4px solid var(--vert);
+    border-radius: var(--rayon);
+    padding: 16px 18px;
+    font-family: inherit; text-align: left; cursor: pointer; display: block;
+    transition: transform .2s, box-shadow .2s, background .2s, border-left-width .2s;
+}
+.carte-choix:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 168, 89, .16);
+}
+.carte-choix.active {
+    background: var(--vert-brume);
+    border-left-width: 7px;
+    box-shadow: 0 6px 18px rgba(0, 168, 89, .2);
+}
+
+.carte-choix .carte-tete {
+    display: flex; align-items: center;
+    display: block; margin-bottom: 6px;
+    font-size: .76rem; color: var(--gris);
+    text-transform: uppercase; letter-spacing: .05em;
+}
+/* L'icône est posée sur une pastille teintée : elle se détache du libellé
+   et donne à chaque carte un point d'accroche visuel. */
+.carte-choix .carte-tete i {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; margin-right: 9px;
+    border-radius: 8px; flex-shrink: 0;
+    background: var(--vert-brume); color: var(--vert-fonce);
+    font-size: .8rem; vertical-align: middle;
+}
+.carte-choix.active .carte-tete i { background: #fff; color: var(--vert-fonce); }
+.carte-choix .carte-valeur {
+    display: block; font-size: 1.7rem; font-weight: 800;
+    color: var(--vert); line-height: 1;
+}
+.carte-choix .carte-note {
+    display: block; margin-top: 5px;
+    font-size: .76rem; color: var(--gris-clair);
+}
+
+/* ---------------------------------------------------- Zone dynamique --- */
+.zone-dynamique {
+    background: #fff; border-radius: var(--rayon);
+    padding: 22px; box-shadow: var(--ombre);
+}
+.zone-tete {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap; margin-bottom: 18px;
+}
+.zone-tete h3 {
+    font-size: 1.02rem; font-weight: 600; color: var(--vert-nuit);
+    display: flex; align-items: center; gap: 9px;
+}
+.zone-tete h3 i { color: var(--vert); }
+
+.btn-retour-tableau {
+    border: 1px solid var(--bordure); background: #fff;
+    border-radius: 999px; padding: 8px 16px;
+    font-family: inherit; font-size: .82rem; font-weight: 600;
+    color: var(--vert-nuit); cursor: pointer; transition: all .2s;
+    display: inline-flex; align-items: center; gap: 7px;
+}
+.btn-retour-tableau:hover { border-color: var(--vert); background: var(--vert-brume); }
+.btn-retour-tableau[hidden] { display: none; }
+
+/* ------------------------------------------------------- Graphiques --- */
+.graphique { width: 100%; overflow-x: auto; }
+.graphique svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+
+.graphique-texte { font-family: inherit; fill: var(--gris); font-size: 12px; }
+.graphique-valeur { font-family: inherit; fill: var(--encre); font-size: 13px; font-weight: 700; }
+.graphique-axe { stroke: var(--bordure); stroke-width: 1; }
+
+.anneau-conteneur {
+    display: flex; align-items: center; justify-content: center;
+    gap: 40px; flex-wrap: wrap;
+}
+.anneau-centre { text-anchor: middle; }
+.anneau-total { font-family: inherit; fill: var(--vert-nuit); font-size: 30px; font-weight: 800; }
+.anneau-mention { font-family: inherit; fill: var(--gris); font-size: 12px; }
+
+.legende { display: flex; flex-direction: column; gap: 10px; justify-content: center; }
+.legende-ligne { display: flex; align-items: center; gap: 10px; font-size: .88rem; }
+.legende-pastille { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; }
+.legende-libelle { flex: 1; color: var(--encre); }
+.legende-valeur { font-weight: 700; color: var(--vert-nuit); }
+.legende-part { color: var(--gris-clair); font-size: .8rem; min-width: 46px; text-align: right; }
+
+@media (max-width: 1100px) {
+    .grille-cartes { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 768px) {
+    .grille-cartes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .anneau-conteneur { gap: 20px; }
+}
+
+/* Intitulés des axes d'un histogramme */
+.graphique-axe-titre {
+    font-family: inherit; fill: var(--vert-nuit);
+    font-size: 13px; font-weight: 700;
+    letter-spacing: .03em;
+}
+
+/* Conteneur d'un tableau de bord : cartes puis zone dynamique */
+.tableau-bord { display: block; }
+
+/* Filtre par période, dans les barres d'outils des tables de tickets */
+.filtre-dates {
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    padding: 4px 12px 4px 14px;
+    border: 1px solid var(--bordure); border-radius: 999px;
+    background: #fff;
+}
+.filtre-dates label {
+    font-size: .78rem; font-weight: 600; color: var(--gris);
+}
+.filtre-dates input[type="date"] {
+    min-width: 0; flex: 1; border: none; background: transparent;
+    font-family: inherit; font-size: .84rem; color: var(--encre);
+    padding: 5px 2px; cursor: pointer;
+}
+.filtre-dates input[type="date"]:focus { outline: 2px solid var(--vert); outline-offset: 2px; border-radius: 4px; }
+
+/* Légende à carrés colorés, sous un histogramme empilé */
+.legende-carres {
+    display: flex; flex-wrap: wrap; justify-content: center;
+    gap: 22px; margin-top: 14px; padding-top: 14px;
+    border-top: 1px solid var(--bordure);
+}
+.legende-carre {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: .86rem; color: var(--encre);
+}
+.legende-carre .carre {
+    width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0;
+}
+
+/* Sélecteur au-dessus d'un graphique */
+.outils-graphique {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 16px; flex-wrap: wrap;
+}
+.outils-graphique label { font-size: .82rem; font-weight: 600; color: var(--gris); }
+
+/* Aperçu du dernier commentaire dans une table */
+.cellule-commentaire {
+    max-width: 260px; font-size: .86rem; line-height: 1.35;
+    color: var(--gris); white-space: normal;
 }

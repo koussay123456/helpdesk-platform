@@ -28,6 +28,8 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
 
     long countByTicket(Ticket ticket);
 
+    long countByAuteur(com.gestion.incidents.incidentmanager.model.Utilisateur auteur);
+
     /** Dernier message d'un ticket, pour l'aperçu de la liste des conversations. */
     Optional<Intervention> findTopByTicketOrderByDateInterventionDescIdDesc(Ticket ticket);
 }

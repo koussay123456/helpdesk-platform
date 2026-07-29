@@ -9,16 +9,14 @@
                 </div>
             </div>
 
-            <div class="sidebar-identite">
-                <i class="fas fa-user"></i>
-                <span class="role">Utilisateur</span>
-                <span class="nom" id="userIdentite">—</span>
-            </div>
-
             <nav class="sidebar-nav-tabs">
-                <button class="sidebar-tab-btn active" data-pane="dashboard" title="Mes tickets">
-                    <i class="fas fa-chart-line"></i>
+                <button class="sidebar-tab-btn active" data-pane="tickets" title="Mes tickets">
+                    <i class="fas fa-ticket"></i>
                     <span class="libelle">Mes tickets</span>
+                </button>
+                <button class="sidebar-tab-btn" data-pane="dashboard" title="Suivi de mes demandes">
+                    <i class="fas fa-chart-line"></i>
+                    <span class="libelle">Suivi de mes demandes</span>
                 </button>
             </nav>
 
@@ -34,13 +32,7 @@
             </div>
 
             <header class="admin-header-new">
-                <div class="entete-gauche">
-                    <button type="button" class="btn-plus" id="btnNouveauTicket"
-                            title="Déclarer un incident">
-                        <i class="fas fa-plus"></i>
-                    </button>
-                    <h1 id="userPageTitle"><i class="fas fa-chart-line"></i> Mes tickets</h1>
-                </div>
+                <h1 id="userPageTitle"><i class="fas fa-ticket"></i> Mes tickets</h1>
                 <div class="admin-user-info">
                     <div class="admin-profile-badge">
                         <span class="avatar-profil" id="userAvatar">—</span>
@@ -54,12 +46,12 @@
 
             <div class="admin-tabs-wrapper">
 
-                <section class="admin-tab-pane active" data-pane="dashboard">
+                <section class="admin-tab-pane active" data-pane="tickets">
                     <div class="zone-centree">
-
-                        <div class="grille-kpi" id="grilleKpiUtilisateur"></div>
-
                         <div class="outils-table">
+                            <button type="button" class="btn-valider" id="btnNouveauTicket">
+                                <i class="fas fa-plus"></i> Créer
+                            </button>
                             <input type="search" id="rechercheMesTickets" class="champ-recherche"
                                    placeholder="Rechercher un numéro ou un titre…">
                             <select id="filtreMesTicketsStatut" class="filtre-select">
@@ -84,6 +76,12 @@
                                 <option value="IMPRIMANTE">Imprimante</option>
                                 <option value="AUTRE">Autre</option>
                             </select>
+                            <div class="filtre-dates">
+                                <label for="dateMesTicketsDebut">Du</label>
+                                <input type="date" id="dateMesTicketsDebut">
+                                <label for="dateMesTicketsFin">au</label>
+                                <input type="date" id="dateMesTicketsFin">
+                            </div>
                             <span class="compte-resultats" id="compteMesTickets"></span>
                         </div>
 
@@ -100,6 +98,43 @@
                                 <tr><td colspan="7" class="etat-vide">Chargement…</td></tr>
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="admin-tab-pane" data-pane="dashboard">
+                    <div class="zone-centree">
+                        <div class="tableau-bord" data-bord id="bordUtilisateur">
+                            <div class="grille-cartes" data-role="cartes"></div>
+
+                            <div class="zone-dynamique">
+                                <div class="zone-tete">
+                                    <h3 data-role="titre"></h3>
+                                    <button type="button" class="btn-retour-tableau" data-role="retour" hidden>
+                                        <i class="fas fa-arrow-left"></i> Revenir au tableau
+                                    </button>
+                                </div>
+
+                                <div data-role="tableau">
+                                    <div class="table-defilante">
+                                        <table class="admin-data-table">
+                                            <thead>
+                                            <tr>
+                                                <th>Identifiant</th><th>Titre</th><th>Catégorie</th>
+                                                <th>Statut</th><th>Créé le</th>
+                                                <th>Dernier commentaire du supportIT</th>
+                                                <th style="text-align:center;">Ajout de commentaire</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody id="suiviTableBody">
+                                            <tr><td colspan="7" class="etat-vide">Chargement…</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <div data-role="graphique" class="graphique" hidden></div>
+                            </div>
                         </div>
                     </div>
                 </section>

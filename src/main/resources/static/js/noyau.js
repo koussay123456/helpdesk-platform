@@ -68,6 +68,28 @@ function reinitialiserFiltres() {
             .forEach(champ => { champ.value = ''; });
     document.querySelectorAll('.filtre-select')
             .forEach(liste => { liste.selectedIndex = 0; });
+    document.querySelectorAll('.filtre-dates input[type="date"]')
+            .forEach(champ => { champ.value = ''; });
+}
+
+/**
+ * Vrai si la date tombe dans la période, bornes comprises.
+ *
+ * Les deux bornes sont facultatives et indépendantes : ne renseigner que
+ * « Du » revient à demander « depuis cette date », et l'inverse pour « au ».
+ * La borne de fin couvre la journée entière, sans quoi un ticket ouvert
+ * l'après-midi serait exclu d'une recherche s'arrêtant à ce jour-là.
+ */
+function dansPeriode(dateIso, debutId, finId) {
+    const debut = document.getElementById(debutId)?.value;
+    const fin = document.getElementById(finId)?.value;
+    if (!debut && !fin) return true;
+    if (!dateIso) return false;
+
+    const quand = new Date(dateIso);
+    if (debut && quand < new Date(debut + 'T00:00:00')) return false;
+    if (fin && quand > new Date(fin + 'T23:59:59')) return false;
+    return true;
 }
 
 function togglePassword(btn) {

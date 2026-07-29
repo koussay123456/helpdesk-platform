@@ -4,7 +4,6 @@ import com.gestion.incidents.incidentmanager.dto.InterventionDTO;
 import com.gestion.incidents.incidentmanager.dto.TicketResumeDTO;
 import com.gestion.incidents.incidentmanager.model.*;
 import com.gestion.incidents.incidentmanager.repository.AuditLogRepository;
-import com.gestion.incidents.incidentmanager.repository.DemandeAccesRepository;
 import com.gestion.incidents.incidentmanager.repository.InterventionRepository;
 import com.gestion.incidents.incidentmanager.repository.TicketRepository;
 import com.gestion.incidents.incidentmanager.repository.UtilisateurRepository;
@@ -30,9 +29,6 @@ public class HelpDeskService {
     private AuditLogRepository auditLogRepository;
 
     @Autowired
-    private DemandeAccesRepository demandeAccesRepository;
-
-    @Autowired
     public HelpDeskService(TicketRepository ticketRepository,
                            UtilisateurRepository utilisateurRepository,
                            InterventionRepository interventionRepository) {
@@ -55,23 +51,90 @@ public class HelpDeskService {
     // AUTHENTIFICATION
     // ============================================================
 
+    /**
+     * Vérifie les identifiants et consigne l'issue, quelle qu'elle soit.
+     *
+     * Une tentative repoussée est enregistrée au même titre qu'une connexion
+     * réussie : c'est précisément la succession d'échecs sur une même adresse
+     * qui signale une tentative d'intrusion. Le motif est conservé à part pour
+     * pouvoir filtrer dessus, et l'adresse saisie l'est même lorsqu'elle ne
+     * correspond à aucun compte.
+     *
+     * Le message rendu à l'appelant reste volontairement vague : préciser que
+     * l'adresse est inconnue permettrait d'énumérer les comptes existants.
+     */
     public Utilisateur authentifier(String email, String motDePasse) {
-        Optional<Utilisateur> utilisateur = utilisateurRepository.findByEmail(email);
+        String adresse = email == null ? "" : email.trim();
+        Optional<Utilisateur> trouve = utilisateurRepository.findByEmail(adresse);
 
-        if (utilisateur.isPresent() && utilisateur.get().getMotDePasse().equals(motDePasse)) {
-            Utilisateur connecte = utilisateur.get();
-
-            // Le contrôle est refait ici : la validation du navigateur ne protège rien.
-            if (!connecte.isActif()) {
-                throw new RuntimeException("Ce compte est désactivé. Contactez votre administrateur.");
-            }
-            // Le filtre "Connexion" de l'onglet Historique n'avait aucune donnée à afficher.
-            enregistrerAudit(connecte, "CONNEXION",
-                    "Connexion de " + connecte.getNomComplet(),
-                    "UTILISATEUR", connecte.getId());
-            return connecte;
+        if (trouve.isEmpty()) {
+            auditLogRepository.save(AuditLog.echecConnexion(null, adresse, AuditLog.MOTIF_INCONNU));
+            return null;
         }
-        return null;
+
+        Utilisateur compte = trouve.get();
+
+        // La saisie est comparée à l'empreinte, jamais à un mot de passe en
+        // clair : une empreinte ne se déchiffre pas, elle se recalcule.
+        if (!MotDePasse.correspond(motDePasse, compte.getMotDePasse())) {
+            auditLogRepository.save(AuditLog.echecConnexion(compte, adresse, AuditLog.MOTIF_MOT_DE_PASSE));
+            return null;
+        }
+
+        // Migration progressive : un mot de passe encore en clair est remplacé
+        // par son empreinte dès la première connexion réussie. Aucun compte
+        // n'est invalidé, et la base finit chiffrée sans intervention.
+        if (!MotDePasse.estChiffre(compte.getMotDePasse())) {
+            compte.setMotDePasse(MotDePasse.chiffrer(motDePasse));
+            utilisateurRepository.save(compte);
+        }
+
+        // Le contrôle est refait ici : la validation du navigateur ne protège rien.
+        if (!compte.isActif()) {
+            auditLogRepository.save(AuditLog.echecConnexion(compte, adresse, AuditLog.MOTIF_DESACTIVE));
+            throw new RuntimeException("Ce compte est désactivé. Contactez votre administrateur.");
+        }
+
+        AuditLog reussite = new AuditLog(compte, AuditLog.CONNEXION,
+                "Connexion de " + compte.getNomComplet(), "UTILISATEUR", compte.getId());
+        reussite.setEmailSaisi(adresse);
+        auditLogRepository.save(reussite);
+
+        return compte;
+    }
+
+    /**
+     * Historique des connexions sur une période, avec ses filtres.
+     * Le tri chronologique inverse vient de la requête ; le reste est trié
+     * en mémoire, le volume ne justifiant pas une requête dynamique.
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> obtenirHistoriqueConnexions(LocalDateTime debut, LocalDateTime fin,
+                                                                 String recherche, String resultat) {
+        String motif = recherche == null ? "" : recherche.trim().toLowerCase();
+
+        return auditLogRepository.findConnexions(debut, fin).stream()
+                .filter(a -> {
+                    if ("reussite".equals(resultat) && !AuditLog.CONNEXION.equals(a.getTypeAction())) return false;
+                    if ("echec".equals(resultat) && !AuditLog.CONNEXION_ECHOUEE.equals(a.getTypeAction())) return false;
+                    if (motif.isEmpty()) return true;
+
+                    String nom = a.getUtilisateur() != null ? a.getUtilisateur().getNomComplet() : "";
+                    String adresse = a.getEmailSaisi() != null ? a.getEmailSaisi() : "";
+                    return (nom + " " + adresse).toLowerCase().contains(motif);
+                })
+                .map(a -> {
+                    Map<String, Object> ligne = new LinkedHashMap<>();
+                    ligne.put("id", a.getId());
+                    ligne.put("date", a.getDateAction());
+                    ligne.put("email", a.getEmailSaisi());
+                    ligne.put("nom", a.getUtilisateur() != null ? a.getUtilisateur().getNomComplet() : null);
+                    ligne.put("role", a.getUtilisateur() != null ? a.getUtilisateur().getRole().name() : null);
+                    ligne.put("reussite", AuditLog.CONNEXION.equals(a.getTypeAction()));
+                    ligne.put("motif", a.getMotifEchec());
+                    return ligne;
+                })
+                .collect(Collectors.toList());
     }
 
     // ============================================================
@@ -292,98 +355,6 @@ public class HelpDeskService {
     }
 
     // ============================================================
-    // DEMANDES D'ACCÈS DEPUIS LA PAGE DE CONNEXION
-    // ============================================================
-
-    /**
-     * Dépose une demande de réinitialisation ou de déblocage.
-     * Aucun courriel n'est envoyé : l'application n'a pas de serveur SMTP.
-     * La demande atterrit dans une file que l'administrateur traite depuis
-     * l'onglet Utilisateurs.
-     */
-    public DemandeAcces enregistrerDemandeAcces(String type, String nom, String prenom,
-                                                String email, String contactAlternatif,
-                                                String description) {
-        if (email == null || email.isBlank()) {
-            throw new RuntimeException("L'adresse e-mail est obligatoire");
-        }
-
-        String typeRetenu = DemandeAcces.TYPE_ACCES_BLOQUE.equals(type)
-                ? DemandeAcces.TYPE_ACCES_BLOQUE
-                : DemandeAcces.TYPE_MOT_DE_PASSE;
-
-        return demandeAccesRepository.save(new DemandeAcces(
-                typeRetenu, nom, prenom, email.trim().toLowerCase(), contactAlternatif, description));
-    }
-
-    @Transactional(readOnly = true)
-    public List<DemandeAcces> obtenirDemandesAcces() {
-        return demandeAccesRepository.findToutesTrieesParUrgence();
-    }
-
-    public void marquerDemandeTraitee(Long demandeId, Long adminId) {
-        DemandeAcces demande = demandeAccesRepository.findById(demandeId)
-                .orElseThrow(() -> new RuntimeException("Demande introuvable"));
-
-        demande.setTraitee(true);
-        demandeAccesRepository.save(demande);
-
-        utilisateurRepository.findById(adminId).ifPresent(admin ->
-                enregistrerAudit(admin, "MODIFICATION",
-                        "Traitement de la demande d'accès de " + demande.getEmail(),
-                        "DEMANDE_ACCES", demandeId));
-    }
-
-    /**
-     * Refuse toute opération portant sur un compte protégé.
-     * Le contrôle vit dans le service et non dans l'interface : masquer un
-     * bouton n'empêche personne d'appeler la route directement.
-     */
-    private void refuserSiProtege(Utilisateur utilisateur) {
-        if (utilisateur.isSuperAdmin()) {
-            throw new RuntimeException("Le compte " + utilisateur.getEmail()
-                    + " est protégé : il ne peut être ni modifié, ni supprimé.");
-        }
-    }
-
-    /** Suppression d'un compte, hors comptes protégés. */
-    public void supprimerUtilisateur(Long utilisateurId, Long adminId) {
-        Utilisateur utilisateur = utilisateurRepository.findById(utilisateurId)
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
-
-        refuserSiProtege(utilisateur);
-
-        if (adminId != null && adminId > 0) {
-            utilisateurRepository.findById(adminId).ifPresent(admin ->
-                    enregistrerAudit(admin, "SUPPRESSION",
-                            "Suppression du compte " + utilisateur.getNomComplet()
-                                    + " (" + utilisateur.getEmail() + ")",
-                            "UTILISATEUR", utilisateurId));
-        }
-
-        utilisateurRepository.deleteById(utilisateurId);
-    }
-
-    /** Active ou désactive un compte. */
-    public Utilisateur changerStatutCompte(Long utilisateurId, boolean actif, Long adminId) {
-        Utilisateur utilisateur = utilisateurRepository.findById(utilisateurId)
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
-
-        refuserSiProtege(utilisateur);
-
-        utilisateur.setActif(actif);
-        Utilisateur misAJour = utilisateurRepository.save(utilisateur);
-
-        utilisateurRepository.findById(adminId).ifPresent(admin ->
-                enregistrerAudit(admin, "MODIFICATION",
-                        (actif ? "Activation" : "Désactivation") + " du compte "
-                                + utilisateur.getEmail(),
-                        "UTILISATEUR", utilisateurId));
-
-        return misAJour;
-    }
-
-    // ============================================================
     // MON COMPTE
     // ============================================================
 
@@ -401,6 +372,85 @@ public class HelpDeskService {
                                         : LocalDateTime.MIN)
                         .reversed())
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Modifie un commentaire.
+     *
+     * Seul son auteur peut le retoucher : un administrateur qui réécrirait le
+     * diagnostic d'un technicien fausserait l'historique du ticket. La date de
+     * modification est renseignée pour que la correction reste visible.
+     */
+    public InterventionDTO modifierIntervention(Long interventionId, Long auteurId, String texte) {
+        if (texte == null || texte.trim().isEmpty()) {
+            throw new RuntimeException("Le commentaire est vide");
+        }
+
+        Intervention intervention = interventionRepository.findById(interventionId)
+                .orElseThrow(() -> new RuntimeException("Commentaire non trouvé"));
+
+        verifierAuteur(intervention, auteurId);
+
+        intervention.setCommentaire(texte.trim());
+        intervention.setDateModification(LocalDateTime.now());
+
+        return InterventionDTO.from(interventionRepository.save(intervention));
+    }
+
+    /** Supprime un commentaire, à la demande de son seul auteur. */
+    public void supprimerIntervention(Long interventionId, Long auteurId) {
+        Intervention intervention = interventionRepository.findById(interventionId)
+                .orElseThrow(() -> new RuntimeException("Commentaire non trouvé"));
+
+        verifierAuteur(intervention, auteurId);
+        interventionRepository.delete(intervention);
+    }
+
+    private void verifierAuteur(Intervention intervention, Long auteurId) {
+        if (intervention.getAuteur() == null
+                || !Objects.equals(intervention.getAuteur().getId(), auteurId)) {
+            throw new RuntimeException("Seul l'auteur d'un commentaire peut le modifier ou le supprimer");
+        }
+    }
+
+    /**
+     * Chiffre d'un coup tous les mots de passe encore en clair.
+     *
+     * La migration se fait normalement compte par compte, à la première
+     * connexion réussie. Cette opération permet de ne pas attendre que chacun
+     * se connecte : utile juste après la mise en service du chiffrement, ou
+     * pour vérifier qu'il ne reste rien en clair.
+     *
+     * Elle est sans effet sur les comptes déjà chiffrés, et peut donc être
+     * relancée sans risque.
+     */
+    public Map<String, Object> chiffrerMotsDePasseEnClair(Long adminId) {
+        Utilisateur admin = utilisateurRepository.findById(adminId)
+                .orElseThrow(() -> new RuntimeException("Administrateur non trouvé"));
+
+        if (admin.getRole() != Role.ADMINISTRATEUR) {
+            throw new RuntimeException("Opération réservée à un administrateur");
+        }
+
+        List<Utilisateur> comptes = utilisateurRepository.findAll();
+        List<Utilisateur> aChiffrer = comptes.stream()
+                .filter(u -> !MotDePasse.estChiffre(u.getMotDePasse()))
+                .collect(Collectors.toList());
+
+        aChiffrer.forEach(u -> u.setMotDePasse(MotDePasse.chiffrer(u.getMotDePasse())));
+        utilisateurRepository.saveAll(aChiffrer);
+
+        if (!aChiffrer.isEmpty()) {
+            enregistrerAudit(admin, "MODIFICATION",
+                    "Chiffrement de " + aChiffrer.size() + " mot(s) de passe encore en clair",
+                    "UTILISATEUR", null);
+        }
+
+        Map<String, Object> bilan = new LinkedHashMap<>();
+        bilan.put("comptes", comptes.size());
+        bilan.put("chiffresMaintenant", aChiffrer.size());
+        bilan.put("dejaChiffres", comptes.size() - aChiffrer.size());
+        return bilan;
     }
 
     // ============================================================
@@ -714,7 +764,7 @@ public class HelpDeskService {
         }
 
         Utilisateur utilisateurSauvegarde = utilisateurRepository.save(
-                new Utilisateur(nom, prenom, email, motDePasse, role, departement));
+                new Utilisateur(nom, prenom, email, MotDePasse.chiffrer(motDePasse), role, departement));
 
         Utilisateur admin = adminId != null ? utilisateurRepository.findById(adminId).orElse(null) : null;
         if (admin != null) {
@@ -727,13 +777,112 @@ public class HelpDeskService {
     }
 
     /**
+     * Refuse toute opération portant sur un compte protégé.
+     *
+     * Le contrôle vit dans le service et non dans l'interface : masquer un
+     * bouton n'empêche personne d'appeler la route directement.
+     */
+    private void refuserSiProtege(Utilisateur utilisateur) {
+        if (utilisateur.isSuperAdmin()) {
+            throw new RuntimeException("Le compte " + utilisateur.getEmail()
+                    + " est protégé : il ne peut être ni modifié, ni supprimé.");
+        }
+    }
+
+    /**
+     * Suppression d'un compte.
+     *
+     * Quatre tables référencent un utilisateur, et chacune appelle un
+     * traitement différent :
+     *
+     *   — les tickets qu'il portait en tant que supportIT retournent au vivier,
+     *     leur affectation étant remise à zéro ;
+     *   — ses lignes d'audit sont conservées mais détachées : effacer la trace
+     *     d'une action au motif que son auteur s'en va viderait le journal de
+     *     son intérêt ;
+     *   — en revanche, les tickets qu'il a déclarés et les commentaires qu'il a
+     *     écrits ne peuvent pas être orphelins sans perdre leur sens. La
+     *     suppression est alors refusée, et la désactivation proposée : elle
+     *     ferme l'accès sans amputer l'historique.
+     */
+    public void supprimerUtilisateur(Long utilisateurId, Long adminId) {
+        Utilisateur utilisateur = utilisateurRepository.findById(utilisateurId)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+        refuserSiProtege(utilisateur);
+
+        long ticketsDeclares = ticketRepository.countByUtilisateur(utilisateur);
+        long commentaires = interventionRepository.countByAuteur(utilisateur);
+
+        if (ticketsDeclares > 0 || commentaires > 0) {
+            StringBuilder detail = new StringBuilder("Ce compte ne peut pas être supprimé : il a ");
+            if (ticketsDeclares > 0) {
+                detail.append("déclaré ").append(ticketsDeclares)
+                        .append(ticketsDeclares > 1 ? " tickets" : " ticket");
+            }
+            if (ticketsDeclares > 0 && commentaires > 0) detail.append(" et ");
+            if (commentaires > 0) {
+                detail.append("écrit ").append(commentaires)
+                        .append(commentaires > 1 ? " commentaires" : " commentaire");
+            }
+            detail.append(". Désactivez-le plutôt : son accès sera fermé et l'historique préservé.");
+            throw new RuntimeException(detail.toString());
+        }
+
+        // Les tickets dont il avait la charge repartent sans affectation.
+        List<Ticket> aLiberer = ticketRepository.findBySupportIt(utilisateur);
+        aLiberer.forEach(t -> t.setSupportIt(null));
+        ticketRepository.saveAll(aLiberer);
+
+        // Le journal garde ses lignes, sans l'auteur.
+        List<AuditLog> traces = auditLogRepository.findByUtilisateur(utilisateur);
+        traces.forEach(a -> {
+            if (a.getEmailSaisi() == null) a.setEmailSaisi(utilisateur.getEmail());
+            a.setUtilisateur(null);
+        });
+        auditLogRepository.saveAll(traces);
+
+        if (adminId != null && adminId > 0) {
+            utilisateurRepository.findById(adminId).ifPresent(admin ->
+                    enregistrerAudit(admin, "SUPPRESSION",
+                            "Suppression du compte " + utilisateur.getNomComplet()
+                                    + " (" + utilisateur.getEmail() + ") — "
+                                    + aLiberer.size() + " ticket(s) remis au vivier",
+                            "UTILISATEUR", utilisateurId));
+        }
+
+        utilisateurRepository.flush();
+        utilisateurRepository.delete(utilisateur);
+    }
+
+    /** Active ou désactive un compte, hors comptes protégés. */
+    public Utilisateur changerStatutCompte(Long utilisateurId, boolean actif, Long adminId) {
+        Utilisateur utilisateur = utilisateurRepository.findById(utilisateurId)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+        refuserSiProtege(utilisateur);
+        utilisateur.setActif(actif);
+        Utilisateur sauvegarde = utilisateurRepository.save(utilisateur);
+
+        if (adminId != null && adminId > 0) {
+            utilisateurRepository.findById(adminId).ifPresent(admin ->
+                    enregistrerAudit(admin, "MODIFICATION",
+                            (actif ? "Activation" : "Désactivation") + " du compte "
+                                    + utilisateur.getEmail(),
+                            "UTILISATEUR", utilisateurId));
+        }
+
+        return sauvegarde;
+    }
+
+    /**
      * Modification partielle : seuls les champs réellement fournis sont
      * appliqués. Un appel ne portant que sur le prénom laisse le reste intact,
      * et le journal d'audit ne mentionne que ce qui a changé.
      */
     public Utilisateur mettreAJourUtilisateur(Long userId, String nom, String prenom,
                                               String email, Role role, String departement,
-                                              Long adminId) {
+                                              Boolean actif, Long adminId) {
         Utilisateur utilisateur = utilisateurRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
 
@@ -756,6 +905,10 @@ public class HelpDeskService {
         if (role != null && role != utilisateur.getRole()) {
             changements.add("rôle : " + utilisateur.getRole() + " → " + role);
             utilisateur.setRole(role);
+        }
+        if (actif != null && actif != utilisateur.isActif()) {
+            changements.add(actif ? "compte réactivé" : "compte désactivé");
+            utilisateur.setActif(actif);
         }
 
         if (renseigne(email) && !email.trim().equalsIgnoreCase(utilisateur.getEmail())) {

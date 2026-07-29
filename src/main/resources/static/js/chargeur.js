@@ -12,8 +12,11 @@ const MODULES = [
     'noyau',               // configuration, appels serveur, fonctions communes
     'session',             // connexion, déconnexion, orientation par rôle
     'navigation',          // passage d'un onglet à l'autre
+    'graphiques',          // anneaux et histogrammes en SVG
+    'tableau-bord',        // composant partagé par les trois espaces
     'admin-utilisateurs',  // table des comptes
-    'admin-bord',          // tickets et indicateurs
+    'admin-bord',          // tableau de bord de l'administrateur
+    'admin-connexions',    // historique des tentatives de connexion
     'support',             // tickets ouverts et bilan personnel
     'utilisateur',         // suivi de ses tickets
     'tickets',             // fiche d'un ticket

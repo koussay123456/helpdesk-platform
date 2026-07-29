@@ -327,10 +327,11 @@ public class HelpDeskController {
             @RequestParam(required = false) String email,
             @RequestParam(required = false) Role role,
             @RequestParam(required = false) String departement,
+            @RequestParam(required = false) Boolean actif,
             @RequestParam(required = false, defaultValue = "-1") Long adminId) {
         try {
             Utilisateur utilisateur = helpDeskService.mettreAJourUtilisateur(
-                    id, nom, prenom, email, role, departement, adminId);
+                    id, nom, prenom, email, role, departement, actif, adminId);
             Map<String, Object> response = succes("Utilisateur modifié avec succès");
             response.put("utilisateur", utilisateur);
             return ResponseEntity.ok(response);
@@ -384,54 +385,68 @@ public class HelpDeskController {
     // DEMANDES D'ACCÈS (page de connexion, sans authentification)
     // ============================================================
 
-    /** Réinitialisation de mot de passe ou déblocage de compte. */
-    @PostMapping("/acces-urgence")
-    public ResponseEntity<Map<String, Object>> deposerDemandeAcces(
-            @RequestParam String type,
-            @RequestParam String email,
-            @RequestParam(required = false) String nom,
-            @RequestParam(required = false) String prenom,
-            @RequestParam(required = false) String contactAlternatif,
-            @RequestParam(required = false) String description) {
+    /**
+     * Chiffre tous les mots de passe encore en clair, sans attendre que
+     * chaque titulaire se connecte. Réservé à un administrateur.
+     */
+    @PostMapping("/admin/chiffrer-mots-de-passe")
+    public ResponseEntity<?> chiffrerMotsDePasse(@RequestParam Long adminId) {
         try {
-            DemandeAcces demande = helpDeskService.enregistrerDemandeAcces(
-                    type, nom, prenom, email, contactAlternatif, description);
-
-            Map<String, Object> response = succes(
-                    "Votre demande a été transmise au support. Vous serez recontacté.");
-            response.put("demande", demande);
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+            return ResponseEntity.ok(helpDeskService.chiffrerMotsDePasseEnClair(adminId));
         } catch (Exception e) {
-            return echec(e, HttpStatus.BAD_REQUEST);
+            return echec(e, HttpStatus.FORBIDDEN);
         }
     }
 
-    @GetMapping("/acces-urgence")
-    public ResponseEntity<List<DemandeAcces>> obtenirDemandesAcces() {
-        return ResponseEntity.ok(helpDeskService.obtenirDemandesAcces());
-    }
+    // ============ COMMENTAIRES ============
 
-    @PostMapping("/acces-urgence/{id}/traitee")
-    public ResponseEntity<Map<String, Object>> marquerDemandeTraitee(@PathVariable Long id,
-                                                                     @RequestParam Long adminId) {
+    /** Modification d'un commentaire par son auteur. */
+    @PutMapping("/interventions/{id}")
+    public ResponseEntity<?> modifierIntervention(@PathVariable Long id,
+                                                  @RequestParam Long auteurId,
+                                                  @RequestParam String commentaire) {
         try {
-            helpDeskService.marquerDemandeTraitee(id, adminId);
-            return ResponseEntity.ok(succes("Demande marquée comme traitée"));
+            return ResponseEntity.ok(helpDeskService.modifierIntervention(id, auteurId, commentaire));
         } catch (Exception e) {
-            return echec(e, HttpStatus.BAD_REQUEST);
+            return echec(e, HttpStatus.FORBIDDEN);
         }
     }
 
-    /** Active ou désactive un compte sans le supprimer. */
-    @PostMapping("/utilisateurs/{id}/statut")
-    public ResponseEntity<Map<String, Object>> changerStatutCompte(@PathVariable Long id,
-                                                                   @RequestParam boolean actif,
-                                                                   @RequestParam Long adminId) {
+    /** Suppression d'un commentaire par son auteur. */
+    @DeleteMapping("/interventions/{id}")
+    public ResponseEntity<Map<String, Object>> supprimerIntervention(@PathVariable Long id,
+                                                                     @RequestParam Long auteurId) {
         try {
-            Utilisateur utilisateur = helpDeskService.changerStatutCompte(id, actif, adminId);
-            Map<String, Object> response = succes(actif ? "Compte activé" : "Compte désactivé");
-            response.put("utilisateur", utilisateur);
-            return ResponseEntity.ok(response);
+            helpDeskService.supprimerIntervention(id, auteurId);
+            return ResponseEntity.ok(succes("Commentaire supprimé"));
+        } catch (Exception e) {
+            return echec(e, HttpStatus.FORBIDDEN);
+        }
+    }
+
+    // ============ HISTORIQUE DE CONNEXION ============
+
+    /**
+     * Tentatives de connexion sur une période, réussies et refusées.
+     * Les dates sont attendues au format ISO ; à défaut, les trente
+     * derniers jours.
+     */
+    @GetMapping("/audit/connexions")
+    public ResponseEntity<?> obtenirHistoriqueConnexions(
+            @RequestParam(required = false) String debut,
+            @RequestParam(required = false) String fin,
+            @RequestParam(required = false) String recherche,
+            @RequestParam(required = false) String resultat) {
+        try {
+            LocalDateTime borneFin = (fin == null || fin.isBlank())
+                    ? LocalDateTime.now()
+                    : java.time.LocalDate.parse(fin).atTime(23, 59, 59);
+            LocalDateTime borneDebut = (debut == null || debut.isBlank())
+                    ? borneFin.minusDays(30).toLocalDate().atStartOfDay()
+                    : java.time.LocalDate.parse(debut).atStartOfDay();
+
+            return ResponseEntity.ok(helpDeskService.obtenirHistoriqueConnexions(
+                    borneDebut, borneFin, recherche, resultat));
         } catch (Exception e) {
             return echec(e, HttpStatus.BAD_REQUEST);
         }

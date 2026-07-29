@@ -30,6 +30,12 @@ public class Utilisateur {
     @Column(nullable = false, unique = true, length = 255)
     private String email;
 
+    /**
+     * Empreinte du mot de passe, jamais la valeur en clair.
+     * @JsonIgnore garantit qu'elle ne quitte pas le serveur, même par
+     * inadvertance lors de la sérialisation d'un compte.
+     */
+    @JsonIgnore
     @Column(nullable = false, length = 255)
     private String motDePasse;
 

@@ -26,28 +26,26 @@ function switchUserTab(pane) {
     basculerOnglet('userDashboard', pane);
 
     const titres = {
-        'dashboard':  '<i class="fas fa-chart-line"></i> Mes tickets',
+        'tickets':   '<i class="fas fa-ticket"></i> Mes tickets',
+        'dashboard': '<i class="fas fa-chart-line"></i> Suivi de mes demandes'
     };
-    document.getElementById('userPageTitle').innerHTML = titres[pane] || titres['dashboard'];
+    document.getElementById('userPageTitle').innerHTML = titres[pane] || titres['tickets'];
 
-    // Le bouton d'ajout ne concerne que le suivi des tickets.
-    document.getElementById('btnNouveauTicket').style.visibility =
-        (pane === 'dashboard') ? 'visible' : 'hidden';
-
-    chargerMesTickets();
+    if (pane === 'dashboard') chargerBordUtilisateur();
+    else chargerMesTickets();
 }
 
 function switchSupportTab(pane) {
     basculerOnglet('supportDashboard', pane);
 
     const titres = {
-        'ouverts':    '<i class="fas fa-inbox"></i> Tickets ouverts',
-        'dashboard':  '<i class="fas fa-chart-line"></i> Tableau de bord',
+        'tickets':   '<i class="fas fa-ticket"></i> Gestion des tickets',
+        'dashboard': '<i class="fas fa-chart-line"></i> Suivi de mes tickets'
     };
-    document.getElementById('supportPageTitle').innerHTML = titres[pane] || titres['ouverts'];
+    document.getElementById('supportPageTitle').innerHTML = titres[pane] || titres['tickets'];
 
-    if (pane === 'dashboard') chargerTableauBordSupport();
-    else chargerTicketsOuverts();
+    if (pane === 'dashboard') chargerBordSupport();
+    else chargerTicketsSupport();
 }
 
 /**
@@ -62,10 +60,15 @@ function switchSupportTab(pane) {
 async function handleCreateTicket(e) {
     e.preventDefault();
 
+    let categorieChoisie = document.getElementById('ticketCategory').value;
+    if (categorieChoisie === 'AUTRE') {
+        categorieChoisie = document.getElementById('ticketCategoryAutre').value.trim();
+    }
+
     const params = new URLSearchParams({
         titre:         document.getElementById('ticketTitle').value,
         description:   document.getElementById('ticketDescription').value,
-        categorie:     document.getElementById('ticketCategory').value,
+        categorie:     categorieChoisie,
         priorite:      document.getElementById('ticketPriority').value,
         utilisateurId: currentUser.id
     });
@@ -106,11 +109,13 @@ function switchAdminTab(tab) {
     });
 
     const titres = {
-        'utilisateurs': '<i class="fas fa-users"></i> Gestion utilisateur',
+        'utilisateurs': '<i class="fas fa-users"></i> Gestion des utilisateurs',
         'tableau-bord': '<i class="fas fa-chart-line"></i> Tableau de bord',
+        'connexions':   '<i class="fas fa-right-to-bracket"></i> Historique de connexion',
         };
     document.getElementById('adminPageTitle').innerHTML = titres[tab] || titres['utilisateurs'];
 
     if (tab === 'utilisateurs')      loadAllUsers();
-    else if (tab === 'tableau-bord') { chargerTicketsAdmin(); chargerKpi(); }
+    else if (tab === 'tableau-bord') chargerTicketsAdmin();
+    else if (tab === 'connexions')   chargerConnexions();
 }

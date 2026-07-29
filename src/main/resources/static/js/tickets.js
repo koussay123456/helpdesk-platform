@@ -135,14 +135,36 @@ async function chargerHistorique(ticketId) {
             return;
         }
 
-        zone.innerHTML = lignes.map(ligne => `
-            <div class="historique-ligne">
+        // Le double-clic sur son propre commentaire fait apparaître les deux
+        // actions. Elles restent masquées le reste du temps : un fil de
+        // discussion criblé d'icônes se lit mal, et rien n'invite à modifier
+        // par mégarde.
+        zone.innerHTML = lignes.map(ligne => {
+            const aMoi = ligne.auteurId === currentUser.id;
+            return `
+            <div class="historique-ligne${aMoi ? ' modifiable' : ''}"
+                 data-intervention="${ligne.id}" ${aMoi ? 'title="Double-cliquez pour modifier ou supprimer"' : ''}>
                 <div class="historique-haut">
                     <span class="historique-auteur">${escapeHtml(ligne.auteurNom || '')} · ${escapeHtml(ligne.auteurRole || '')}</span>
-                    <span class="historique-date">${formatDate(ligne.dateEnvoi)} à ${formatHeure(ligne.dateEnvoi)}</span>
+                    <span class="historique-date">
+                        ${formatDate(ligne.dateEnvoi)} à ${formatHeure(ligne.dateEnvoi)}
+                        ${ligne.modifie ? '<em class="mention-modifie">modifié</em>' : ''}
+                    </span>
                 </div>
                 <div class="historique-texte">${escapeHtml(ligne.contenu)}</div>
-            </div>`).join('');
+                ${aMoi ? `
+                <div class="historique-actions">
+                    <button type="button" class="icone-action" data-modifier title="Modifier">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                    <button type="button" class="icone-action danger" data-supprimer title="Supprimer">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>` : ''}
+            </div>`;
+        }).join('');
+
+        brancherActionsHistorique(ticketId, lignes);
     } catch (error) {
         zone.innerHTML = '<p class="etat-vide" style="padding:16px;">Historique indisponible : '
             + escapeHtml(error.message) + '</p>';
@@ -189,4 +211,71 @@ function ouvrirNouveauTicket() {
 
 function fermerNouveauTicket() {
     document.getElementById('modalNouveauTicket').classList.remove('open');
+}
+
+/* ------------------------------- Modification d'un commentaire --- */
+
+/**
+ * Branche le double-clic et les deux icônes de chaque commentaire.
+ *
+ * Seuls les commentaires dont on est l'auteur portent ces actions : le
+ * serveur refuse de toute façon les autres, mais mieux vaut ne rien proposer
+ * qu'afficher un bouton qui échouera.
+ */
+function brancherActionsHistorique(ticketId, lignes) {
+    const parId = new Map(lignes.map(l => [String(l.id), l]));
+
+    document.querySelectorAll('#modalHistorique .historique-ligne.modifiable').forEach(bloc => {
+        const ligne = parId.get(bloc.dataset.intervention);
+
+        bloc.addEventListener('dblclick', () => {
+            const deja = bloc.classList.contains('actions-visibles');
+            document.querySelectorAll('#modalHistorique .actions-visibles')
+                    .forEach(autre => autre.classList.remove('actions-visibles'));
+            bloc.classList.toggle('actions-visibles', !deja);
+        });
+
+        bloc.querySelector('[data-modifier]')?.addEventListener('click', e => {
+            e.stopPropagation();
+            modifierCommentaire(ticketId, ligne);
+        });
+
+        bloc.querySelector('[data-supprimer]')?.addEventListener('click', e => {
+            e.stopPropagation();
+            supprimerCommentaire(ticketId, ligne);
+        });
+    });
+}
+
+async function modifierCommentaire(ticketId, ligne) {
+    const texte = prompt('Modifier le commentaire :', ligne.contenu);
+    if (texte === null) return;
+    if (!texte.trim()) {
+        showNotification('Le commentaire ne peut pas être vide', 'error');
+        return;
+    }
+
+    try {
+        const params = new URLSearchParams({ auteurId: currentUser.id, commentaire: texte.trim() });
+        await lireReponse(await fetch(`${API_BASE}/interventions/${ligne.id}?${params}`,
+                { method: 'PUT' }));
+        showNotification('Commentaire modifié', 'success');
+        chargerHistorique(ticketId);
+    } catch (error) {
+        showNotification(error.message, 'error');
+    }
+}
+
+async function supprimerCommentaire(ticketId, ligne) {
+    if (!confirm('Supprimer définitivement ce commentaire ?')) return;
+
+    try {
+        await lireReponse(await fetch(
+            `${API_BASE}/interventions/${ligne.id}?auteurId=${currentUser.id}`,
+            { method: 'DELETE' }));
+        showNotification('Commentaire supprimé', 'success');
+        chargerHistorique(ticketId);
+    } catch (error) {
+        showNotification(error.message, 'error');
+    }
 }

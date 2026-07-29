@@ -87,7 +87,6 @@ async function loadAllUsers() {
         liste.value = choisi;
 
         rendreUtilisateurs();
-        chargerDemandesAcces();
     } catch (error) {
         tbody.innerHTML = '<tr><td colspan="5" class="etat-vide">Liste indisponible : '
             + escapeHtml(error.message) + '</td></tr>';
@@ -117,7 +116,7 @@ function rendreUtilisateurs() {
         return;
     }
 
-    const libelles = { 'ADMINISTRATEUR': 'Administrateur', 'SUPPORT_IT': 'Support IT', 'UTILISATEUR': 'Utilisateur' };
+    const libelles = { 'ADMINISTRATEUR': 'Administrateur', 'SUPPORT_IT': 'supportIT', 'UTILISATEUR': 'Utilisateur' };
     const classes = { 'ADMINISTRATEUR': 'role-badge-admin', 'SUPPORT_IT': 'role-badge-support', 'UTILISATEUR': 'role-badge-utilisateur' };
 
     retenus.forEach(user => {
@@ -160,6 +159,54 @@ function rendreUtilisateurs() {
 }
 
 /* ---------- Fenêtre de création et de modification ---------- */
+
+/** Socle proposé même sur une base vierge. */
+const DEPARTEMENTS_CONNUS = [
+    "Direction des systèmes d'information", 'Direction générale', 'Ressources humaines',
+    'Finance', 'Marketing', 'Ventes', 'Logistique', 'Production', 'Qualité'
+];
+
+const AUTRE_DEPARTEMENT = '__autre__';
+
+/**
+ * Remplit la liste des départements.
+ *
+ * Le socle est complété par les valeurs déjà présentes en base : un
+ * département saisi via « Autres » réapparaît donc dans la liste dès le
+ * compte suivant, sans qu'on ait à toucher au code.
+ */
+function garnirDepartements(valeurCourante) {
+    const liste = document.getElementById('editDepartement');
+    const existants = tousLesUtilisateurs.map(u => u.departement).filter(Boolean);
+
+    const options = [...new Set([...DEPARTEMENTS_CONNUS, ...existants])]
+        .sort((a, b) => a.localeCompare(b, 'fr'));
+
+    liste.innerHTML = '<option value="">Non renseigné</option>'
+        + options.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('')
+        + `<option value="${AUTRE_DEPARTEMENT}">Autres…</option>`;
+
+    liste.value = valeurCourante && options.includes(valeurCourante) ? valeurCourante : '';
+    basculerChampDepartement();
+}
+
+/** Le champ libre n'apparaît que sur le choix « Autres ». */
+function basculerChampDepartement() {
+    const liste = document.getElementById('editDepartement');
+    const libre = document.getElementById('editDepartementAutre');
+    const autre = liste.value === AUTRE_DEPARTEMENT;
+
+    libre.hidden = !autre;
+    if (!autre) libre.value = '';
+    else libre.focus();
+}
+
+/** Département retenu : la saisie libre l'emporte quand « Autres » est choisi. */
+function departementSaisi() {
+    const liste = document.getElementById('editDepartement');
+    if (liste.value !== AUTRE_DEPARTEMENT) return liste.value;
+    return document.getElementById('editDepartementAutre').value.trim();
+}
 let compteEnEdition = null;
 
 function ouvrirModalUtilisateur(user) {
@@ -172,7 +219,7 @@ function ouvrirModalUtilisateur(user) {
     document.getElementById('editNom').value = user ? user.nom : '';
     document.getElementById('editPrenom').value = user ? user.prenom : '';
     document.getElementById('editEmail').value = user ? user.email : '';
-    document.getElementById('editDepartement').value = user ? (user.departement || '') : '';
+    garnirDepartements(user ? user.departement : '');
     document.getElementById('editRole').value = user ? user.role : 'UTILISATEUR';
 
     // Le mot de passe n'est demandé qu'à la création.
@@ -197,8 +244,9 @@ async function enregistrerUtilisateur(e) {
         nom: document.getElementById('editNom').value.trim(),
         prenom: document.getElementById('editPrenom').value.trim(),
         email: document.getElementById('editEmail').value.trim(),
-        departement: document.getElementById('editDepartement').value.trim(),
-        role: document.getElementById('editRole').value
+        departement: departementSaisi(),
+        role: document.getElementById('editRole').value,
+        actif: document.getElementById('editActif').value
     };
 
     try {
@@ -218,7 +266,12 @@ async function enregistrerUtilisateur(e) {
             // Seuls les champs réellement modifiés partent au serveur.
             const modifies = {};
             Object.entries(saisies).forEach(([champ, valeur]) => {
-                if (valeur && valeur !== (compteEnEdition[champ] || '')) modifies[champ] = valeur;
+                // L'état du compte est un booléen : la comparaison passe par sa
+                // forme textuelle, sinon « false » serait confondu avec un vide.
+                const actuel = champ === 'actif'
+                    ? String(compteEnEdition.actif !== false)
+                    : (compteEnEdition[champ] || '');
+                if (valeur && valeur !== actuel) modifies[champ] = valeur;
             });
             if (!Object.keys(modifies).length) {
                 showNotification('Aucune modification à enregistrer', 'info');
@@ -264,48 +317,5 @@ async function validerSuppression() {
         loadAllUsers();
     } catch (error) {
         showNotification(error.message, 'error');
-    }
-}
-
-/* ---------- Demandes d'accès ---------- */
-async function chargerDemandesAcces() {
-    const bloc = document.getElementById('blocDemandes');
-    const liste = document.getElementById('listeDemandes');
-    if (!bloc) return;
-
-    try {
-        const demandes = await lireReponse(await fetch(`${API_BASE}/acces-urgence`));
-        if (!demandes.length) { bloc.style.display = 'none'; return; }
-        bloc.style.display = 'block';
-
-        liste.innerHTML = '';
-        demandes.slice(0, 20).forEach(demande => {
-            const ligne = document.createElement('div');
-            ligne.className = 'demande-ligne' + (demande.traitee ? ' traitee' : '');
-            ligne.innerHTML = `
-                <div class="demande-corps">
-                    <strong>${escapeHtml(demande.email)}</strong>
-                    ${demande.description ? `<p>${escapeHtml(demande.description)}</p>` : ''}
-                    <div class="demande-meta">${formatDate(demande.dateDemande)} à ${formatHeure(demande.dateDemande)}</div>
-                </div>`;
-            if (!demande.traitee) {
-                const bouton = document.createElement('button');
-                bouton.type = 'button';
-                bouton.className = 'btn-small-action btn-edit';
-                bouton.innerHTML = '<i class="fas fa-check"></i> Traitée';
-                bouton.addEventListener('click', async () => {
-                    try {
-                        await lireReponse(await fetch(
-                            `${API_BASE}/acces-urgence/${demande.id}/traitee?adminId=${currentUser.id}`,
-                            { method: 'POST' }));
-                        chargerDemandesAcces();
-                    } catch (error) { showNotification(error.message, 'error'); }
-                });
-                ligne.appendChild(bouton);
-            }
-            liste.appendChild(ligne);
-        });
-    } catch (error) {
-        bloc.style.display = 'none';
     }
 }

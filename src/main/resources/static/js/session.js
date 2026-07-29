@@ -71,13 +71,13 @@ function showDashboard(role) {
     if (role === 'UTILISATEUR') {
         document.getElementById('userDashboard').classList.add('active');
         majAffichageIdentite();
-        basculerOnglet('userDashboard', 'dashboard');
+        basculerOnglet('userDashboard', 'tickets');
         chargerMesTickets();
     } else if (role === 'SUPPORT_IT') {
         document.getElementById('supportDashboard').classList.add('active');
         majAffichageIdentite();
-        basculerOnglet('supportDashboard', 'ouverts');
-        chargerTicketsOuverts();
+        basculerOnglet('supportDashboard', 'tickets');
+        chargerTicketsSupport();
     } else if (role === 'ADMINISTRATEUR') {
         document.getElementById('adminDashboard').classList.add('active');
         majAffichageIdentite();
