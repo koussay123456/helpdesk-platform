@@ -34,7 +34,7 @@ let bordSupport = null;
 async function chargerTicketsSupport() {
     const tbody = document.getElementById('supportTableBody');
     try {
-        ticketsSupport = await lireReponse(await fetch(`${API_BASE}/tickets`));
+        ticketsSupport = await lireReponse(await fetch(`${API_BASE}/tickets/kanban`));
         rendreTicketsSupport();
     } catch (error) {
         tbody.innerHTML = '<tr><td colspan="8" class="etat-vide">Tickets indisponibles : '
@@ -169,7 +169,7 @@ function mesTicketsSupport() {
 
 async function chargerBordSupport() {
     try {
-        ticketsSupport = await lireReponse(await fetch(`${API_BASE}/tickets`));
+        ticketsSupport = await lireReponse(await fetch(`${API_BASE}/tickets/kanban`));
         if (!bordSupport) bordSupport = creerTableauDeBord('bordSupport', CONFIG_BORD_SUPPORT);
         bordSupport.rafraichir();
     } catch (error) {
@@ -236,15 +236,11 @@ function rendreMesInterventions() {
     const miens = mesTicketsSupport();
     const recherche = (document.getElementById('rechercheMesInterventions')?.value || '').trim().toLowerCase();
     const statut = document.getElementById('filtreMesInterventionsStatut')?.value || '';
-    const priorite = document.getElementById('filtreMesInterventionsPriorite')?.value || '';
-    const categorie = document.getElementById('filtreMesInterventionsCategorie')?.value || '';
 
     const retenus = miens.filter(t => {
         const texte = `${t.numero} ${t.titre}`.toLowerCase();
         if (recherche && !texte.includes(recherche)) return false;
         if (statut && t.statut !== statut) return false;
-        if (priorite && t.priorite !== priorite) return false;
-        if (categorie && t.categorie !== categorie) return false;
         if (!dansPeriode(t.dateCreation, 'dateMesInterventionsDebut', 'dateMesInterventionsFin')) return false;
         return true;
     });
@@ -342,12 +338,7 @@ async function enregistrerCommentaire(e) {
         document.getElementById('modalCommentaire').classList.remove('open');
         ticketCommente = null;
         showNotification('Commentaire enregistré', 'success');
-        
-        if (currentUser.role === 'UTILISATEUR') {
-            if (typeof chargerBordUtilisateur === 'function') chargerBordUtilisateur();
-        } else {
-            if (typeof chargerBordSupport === 'function') chargerBordSupport();
-        }
+        chargerBordSupport();
     } catch (error) {
         showNotification(error.message, 'error');
     }

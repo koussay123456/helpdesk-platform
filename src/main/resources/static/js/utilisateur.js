@@ -141,7 +141,7 @@ function rendreSuivi() {
 
     tbody.innerHTML = '';
     if (!mesTickets.length) {
-        tbody.innerHTML = `<tr><td colspan="7" class="etat-vide">Aucune demande enregistrée.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="etat-vide">Aucune demande enregistrée.</td></tr>`;
         return;
     }
 
@@ -155,18 +155,7 @@ function rendreSuivi() {
             <td>${escapeHtml(LIBELLES_CATEGORIE[t.categorie] || t.categorie || '—')}</td>
             <td><span class="ticket-status ${classeStatut(t.statut)}">${LIBELLES_STATUT[t.statut] || t.statut}</span></td>
             <td>${formatDate(t.dateCreation)}</td>
-            <td class="cellule-commentaire">${apercuCommentaire(t)}</td>
-            <td style="text-align:center;"><span data-commenter></span></td>`;
-            
-        const action = ligne.querySelector('[data-commenter]');
-        action.innerHTML = `<button type="button" class="btn-valider"
-                                    style="padding:7px 14px;font-size:.8rem;">
-                                <i class="fas fa-comment-dots"></i> Commenter</button>`;
-        action.querySelector('button').addEventListener('click', e => {
-            e.stopPropagation();
-            ouvrirCommentaire(t);
-        });
-
+            <td class="cellule-commentaire">${apercuCommentaire(t)}</td>`;
         ligne.addEventListener('click', () => ouvrirModalTicket(t.id));
         tbody.appendChild(ligne);
     });

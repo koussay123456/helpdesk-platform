@@ -221,6 +221,9 @@ function ouvrirModalUtilisateur(user) {
     document.getElementById('editEmail').value = user ? user.email : '';
     garnirDepartements(user ? user.departement : '');
     document.getElementById('editRole').value = user ? user.role : 'UTILISATEUR';
+    document.getElementById('editActif').value = user
+        ? String(user.actif !== false)
+        : 'true';
 
     // Le mot de passe n'est demandé qu'à la création.
     document.getElementById('champMotDePasse').style.display = creation ? 'flex' : 'none';
