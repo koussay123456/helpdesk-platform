@@ -64,8 +64,10 @@ public class HelpDeskService {
      * l'adresse est inconnue permettrait d'énumérer les comptes existants.
      */
     public Utilisateur authentifier(String email, String motDePasse) {
+        long t0 = System.currentTimeMillis();
         String adresse = email == null ? "" : email.trim();
         Optional<Utilisateur> trouve = utilisateurRepository.findByEmail(adresse);
+        System.out.println("⏱️ 1. Recherche SQL findByEmail : " + (System.currentTimeMillis() - t0) + " ms");
 
         if (trouve.isEmpty()) {
             auditLogRepository.save(AuditLog.echecConnexion(null, adresse, AuditLog.MOTIF_INCONNU));
@@ -74,31 +76,31 @@ public class HelpDeskService {
 
         Utilisateur compte = trouve.get();
 
-        // La saisie est comparée à l'empreinte, jamais à un mot de passe en
-        // clair : une empreinte ne se déchiffre pas, elle se recalcule.
-        if (!MotDePasse.correspond(motDePasse, compte.getMotDePasse())) {
+        long t1 = System.currentTimeMillis();
+        boolean correspond = MotDePasse.correspond(motDePasse, compte.getMotDePasse());
+        System.out.println("⏱️ 2. Verification MotDePasse : " + (System.currentTimeMillis() - t1) + " ms");
+
+        if (!correspond) {
             auditLogRepository.save(AuditLog.echecConnexion(compte, adresse, AuditLog.MOTIF_MOT_DE_PASSE));
             return null;
         }
 
-        // Migration progressive : un mot de passe encore en clair est remplacé
-        // par son empreinte dès la première connexion réussie. Aucun compte
-        // n'est invalidé, et la base finit chiffrée sans intervention.
         if (!MotDePasse.estChiffre(compte.getMotDePasse())) {
             compte.setMotDePasse(MotDePasse.chiffrer(motDePasse));
             utilisateurRepository.save(compte);
         }
 
-        // Le contrôle est refait ici : la validation du navigateur ne protège rien.
         if (!compte.isActif()) {
             auditLogRepository.save(AuditLog.echecConnexion(compte, adresse, AuditLog.MOTIF_DESACTIVE));
             throw new RuntimeException("Ce compte est désactivé. Contactez votre administrateur.");
         }
 
+        long t2 = System.currentTimeMillis();
         AuditLog reussite = new AuditLog(compte, AuditLog.CONNEXION,
                 "Connexion de " + compte.getNomComplet(), "UTILISATEUR", compte.getId());
         reussite.setEmailSaisi(adresse);
         auditLogRepository.save(reussite);
+        System.out.println("⏱️ 3. Sauvegarde AuditLog : " + (System.currentTimeMillis() - t2) + " ms");
 
         return compte;
     }

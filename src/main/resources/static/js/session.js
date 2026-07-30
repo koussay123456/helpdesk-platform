@@ -90,15 +90,13 @@ function showDashboard(role) {
 
 /** Reprend la session enregistrée, si elle existe. Appelée au démarrage. */
 function reprendreSession() {
-    const saved = localStorage.getItem('currentUser');
-    if (saved) {
-        try {
-            currentUser = JSON.parse(saved);
-            showDashboard(currentUser.role);
-        } catch (e) {
-            localStorage.removeItem('currentUser');
-        }
-    }
+    // On n'auto-connecte plus : l'utilisateur doit se reconnecter à chaque lancement
+    localStorage.removeItem('currentUser');
+    currentUser = null;
+
+    document.querySelectorAll('.screen, .dashboard-screen')
+            .forEach(s => s.classList.remove('active'));
+    document.getElementById('loginScreen').classList.add('active');
 }
 
 // Logo de la sidebar : bascule sur une icône si le PNG est absent.

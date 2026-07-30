@@ -31,7 +31,7 @@ public final class MotDePasse {
 
     private static final String ALGORITHME = "PBKDF2WithHmacSHA256";
     private static final String PREFIXE = "pbkdf2$";
-    private static final int ITERATIONS = 210_000;
+    private static final int ITERATIONS = 10_000;
     private static final int TAILLE_SEL = 16;
     private static final int TAILLE_CLE = 256;
 
@@ -76,6 +76,12 @@ public final class MotDePasse {
 
         try {
             int iterations = Integer.parseInt(parties[1]);
+
+// Limiter les anciennes valeurs trop élevées
+            if (iterations > ITERATIONS) {
+                iterations = ITERATIONS;
+            }
+
             byte[] sel = Base64.getDecoder().decode(parties[2]);
             byte[] attendu = Base64.getDecoder().decode(parties[3]);
             byte[] calcule = deriver(saisie, sel, iterations);

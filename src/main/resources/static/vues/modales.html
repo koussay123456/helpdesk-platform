@@ -194,13 +194,13 @@
                 </div>
 
                 <div class="modal-bloc">
-                    <div class="form-group-admin" style="margin-bottom:16px;">
-                        <label for="ticketTitle">Résumé en une phrase</label>
-                        <input type="text" id="ticketTitle">
-                    </div>
-                    <div class="form-group-admin">
-                        <label for="ticketDescription">Description détaillée</label>
-                        <textarea id="ticketDescription"></textarea>
+                    <div class="modal-bloc">
+                        <div class="form-group-admin">
+                            <label for="ticketDescription">Description de l'incident</label>
+                            <textarea id="ticketDescription" rows="5" required
+                                      placeholder="Décrivez le problème rencontré…"></textarea>
+                            <small class="aide">Un titre sera généré automatiquement à partir de cette description.</small>
+                        </div>
                     </div>
                 </div>
             </div>

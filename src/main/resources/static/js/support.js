@@ -34,7 +34,7 @@ let bordSupport = null;
 async function chargerTicketsSupport() {
     const tbody = document.getElementById('supportTableBody');
     try {
-        ticketsSupport = await lireReponse(await fetch(`${API_BASE}/tickets/kanban`));
+        ticketsSupport = await lireReponse(await fetch(`${API_BASE}/tickets`));
         rendreTicketsSupport();
     } catch (error) {
         tbody.innerHTML = '<tr><td colspan="8" class="etat-vide">Tickets indisponibles : '
@@ -169,7 +169,7 @@ function mesTicketsSupport() {
 
 async function chargerBordSupport() {
     try {
-        ticketsSupport = await lireReponse(await fetch(`${API_BASE}/tickets/kanban`));
+        ticketsSupport = await lireReponse(await fetch(`${API_BASE}/tickets`));
         if (!bordSupport) bordSupport = creerTableauDeBord('bordSupport', CONFIG_BORD_SUPPORT);
         bordSupport.rafraichir();
     } catch (error) {
